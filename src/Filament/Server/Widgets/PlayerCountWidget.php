@@ -1,10 +1,10 @@
 <?php
 
-namespace KumaGames\GamePlayerManager\Filament\Server\Widgets;
+namespace R0B0TB0SS\GamePlayerManager\Filament\Server\Widgets;
 
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use App\Filament\Server\Components\SmallStatBlock;
-use KumaGames\GamePlayerManager\Services\MinecraftPlayerProvider;
+use R0B0TB0SS\GamePlayerManager\Services\MinecraftPlayerProvider;
 use Filament\Facades\Filament;
 
 class PlayerCountWidget extends BaseWidget
@@ -12,8 +12,11 @@ class PlayerCountWidget extends BaseWidget
     protected function getStats(): array
     {
         $server = Filament::getTenant();
-        
-        if (!$server) {
+
+        if (
+            ! $server ||
+            ! in_array('minecraft', $server->egg->tags ?? [])
+        ) {
             return [];
         }
 
@@ -23,10 +26,16 @@ class PlayerCountWidget extends BaseWidget
         $players = $provider->getPlayers($serverId);
         
         $onlineCount = count(array_filter($players, fn($p) => $p['online'] ?? false));
-        // We can get max players if we had query details, but for now hardcode or omit
         
+        $properties = $provider->getServerProperties($serverId);
+        $maxPlayers = $properties['max_players'] ?? 20;
+        $motd = $properties['motd'] ?? '';
+        $levelName = $properties['level_name'] ?? 'world';
+
         return [
-            SmallStatBlock::make(__('minecraft-player-manager::messages.widget.online_players'), (string) $onlineCount), 
+            SmallStatBlock::make(__('minecraft-player-manager::messages.widget.online_players'), "{$onlineCount} / {$maxPlayers}"), 
+            SmallStatBlock::make(__('minecraft-player-manager::messages.widget.motd'), $motd),
+            SmallStatBlock::make(__('minecraft-player-manager::messages.widget.map'), $levelName),
         ];
     }
 }

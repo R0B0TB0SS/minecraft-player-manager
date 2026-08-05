@@ -1,17 +1,24 @@
 <?php
 
-namespace KumaGames\GamePlayerManager\Filament\Server\Widgets;
+namespace R0B0TB0SS\GamePlayerManager\Filament\Server\Widgets;
 
 use Filament\Widgets\TableWidget as BaseWidget;
 use Filament\Tables;
 use Filament\Tables\Table;
-use KumaGames\GamePlayerManager\Services\MinecraftPlayerProvider;
-use KumaGames\GamePlayerManager\Models\Player;
+use R0B0TB0SS\GamePlayerManager\Services\MinecraftPlayerProvider;
+use R0B0TB0SS\GamePlayerManager\Models\Player;
 use Filament\Facades\Filament;
 use Filament\Actions\Action;
 
 class OnlinePlayersTableWidget extends BaseWidget
 {
+    public static function canView(): bool
+    {
+        /** @var \App\Models\Server $server */
+        $server = Filament::getTenant();
+
+        return in_array('minecraft', $server->egg->tags ?? []);
+    }
     protected int | string | array $columnSpan = 'full';
     
     protected static ?string $heading = 'Online Players';

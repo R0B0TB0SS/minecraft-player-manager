@@ -1,37 +1,38 @@
 <?php
 
 return [
-    'navigation_label' => 'Game Players',
+    'navigation_label' => 'Joueurs',
     
     'columns' => [
         'avatar' => 'Avatar',
-        'name' => 'Username',
-        'status' => 'Status',
-        'world' => 'World',
-        'online' => 'Online',
-        'offline' => 'Offline',
-        'op' => 'Operator',
+        'name' => 'Nom d\'utilisateur',
+        'status' => 'Statut',
+        'world' => 'Monde',
+        'online' => 'En ligne',
+        'offline' => 'Hors ligne',
+        'op' => 'Operateur',
     ],
 
     'filters' => [
-        'all' => 'All',
-        'online' => 'Online',
-        'offline' => 'Offline',
+        'all' => 'Tous',
+        'online' => 'En ligne',
+        'offline' => 'Hors linge',
         'op' => 'OP',
-        'banned' => 'Banned',
+        'banned' => 'Bannis',
     ],
 
     'sections' => [
         'identity' => 'Identity',
         'statistics' => 'Statistics',
         'statistics_desc' => 'Historical data from world stats',
-        'live_status' => 'Status',
-        'live_status_desc' => 'Real-time data from server',
+        'live_status' => 'Statut',
+        'live_status_desc' => 'Donnees en temps reel du serveur',
         'offline_status_desc' => 'Offline - Displaying data from last save file',
         'rcon_disabled_status_desc' => 'RCON disabled - Displaying data from save file',
-        'inventory' => 'Inventory',
+        'inventory' => 'Inventaire',
         'management' => 'Management',
         'management_desc' => 'Perform actions on this player',
+        'enderchest' => 'Ender Chest',
     ],
 
     'fields' => [
@@ -45,12 +46,12 @@ return [
         'status' => 'Status',
         'xp_level' => 'XP Level',
         'gamemode' => 'Gamemode',
-        'visual_inventory' => 'Visual Inventory',
+        'visual_inventory' => 'Inventaire',
     ],
 
     'stats' => [
-        'health' => 'Health',
-        'food' => 'Food',
+        'health' => 'Vie',
+        'food' => 'Nouriture',
     ],
 
     'actions' => [

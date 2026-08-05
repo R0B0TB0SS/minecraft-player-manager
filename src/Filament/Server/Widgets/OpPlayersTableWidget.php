@@ -1,12 +1,12 @@
 <?php
 
-namespace KumaGames\GamePlayerManager\Filament\Server\Widgets;
+namespace R0B0TB0SS\GamePlayerManager\Filament\Server\Widgets;
 
 use Filament\Widgets\TableWidget as BaseWidget;
 use Filament\Tables;
 use Filament\Tables\Table;
-use KumaGames\GamePlayerManager\Services\MinecraftPlayerProvider;
-use KumaGames\GamePlayerManager\Models\Player;
+use R0B0TB0SS\GamePlayerManager\Services\MinecraftPlayerProvider;
+use R0B0TB0SS\GamePlayerManager\Models\Player;
 use Filament\Facades\Filament;
 use Filament\Actions\Action;
 

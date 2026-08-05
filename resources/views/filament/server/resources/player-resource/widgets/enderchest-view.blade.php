@@ -49,7 +49,7 @@
             <div class="flex gap-2 slot-row">
                 @for ($col = 0; $col < 9; $col++)
                     @php 
-                        $slotId = 9 + ($row * 9) + $col;
+                        $slotId = ($row * 9) + $col;
                         $item = $getItem($slotId);
                         $name = $getName($item);
                     @endphp
@@ -79,64 +79,6 @@
                 @endfor
             </div>
         @endfor
-
-        {{-- Hotbar --}}
-        <div class="flex gap-2 mt-2 slot-row">
-            @for ($col = 0; $col < 9; $col++)
-                @php 
-                    $item = $getItem($col);
-                    $name = $getName($item);
-                @endphp
-                <div class="inv-slot relative flex items-center justify-center bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md shadow-sm transition hover:ring-2 hover:ring-primary-500 hover:border-primary-500 group shrink-0"
-                      title="{{ $name ?? 'Vide' }}">
-                    @if ($item && isset($item['id']))
-                        @php 
-                            $p = explode(':', $item['id']); 
-                            $m = (count($p) > 1) ? $p[0] : 'minecraft'; 
-                            $i = (count($p) > 1) ? $p[1] : $p[0];
-                        @endphp
-                        <img src="https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/item/{{ $i }}.png" 
-                             class="inv-img rendering-pixelated"
-                             onerror="this.onerror=null;this.src='https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/block/{{ $i }}.png'" />
-                        @if (($item['count'] ?? 1) > 1)
-                            <span class="inv-count absolute bottom-0 right-0 font-bold px-1 pt-0.5 rounded-tl-sm shadow-sm leading-none bg-gray-200/80 dark:bg-black/60 text-[10px]">
-                                {{ $item['count'] }}
-                            </span>
-                        @endif
-                        <div class="absolute bottom-full mb-1 hidden group-hover:block z-20 whitespace-nowrap bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg">
-                             {{ $name }}
-                        </div>
-                    @endif
-                </div>
-            @endfor
-        </div>
-    </div>
-
-    {{-- Armor & Offhand --}}
-    <div class="inv-armor flex gap-2 border-gray-200 dark:border-white/10 shrink-0">
-        @foreach ([103, 102, 101, 100] as $armorSlot)
-            @php 
-                $item = $getItem($armorSlot); 
-                $name = $getName($item);
-                $icons = [103 => 'helmet', 102 => 'chestplate', 101 => 'leggings', 100 => 'boots'];
-                $placeholder = $icons[$armorSlot] ?? 'armor';
-            @endphp
-            <div class="inv-slot relative flex items-center justify-center bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md shadow-inner group shrink-0"
-                 title="{{ $name ?? ucfirst($placeholder) }}">
-                @if ($item && isset($item['id']))
-                    @php 
-                        $p = explode(':', $item['id']); 
-                        $m = (count($p) > 1) ? $p[0] : 'minecraft'; 
-                        $i = (count($p) > 1) ? $p[1] : $p[0];
-                    @endphp
-                    <img src="https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/item/{{ $i }}.png"
-                         class="inv-img rendering-pixelated"
-                         onerror="this.onerror=null;this.src='https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/block/{{ $i }}.png'" />
-                @else
-                   <span class="text-gray-300 dark:text-gray-600 text-xs text-center leading-none opacity-50">{{ strtoupper(substr($placeholder, 0, 1)) }}</span>
-                @endif
-            </div>
-        @endforeach
     </div>
 </div>
 

@@ -5,20 +5,20 @@ return [
     
     'columns' => [
         'avatar' => 'Avatar',
-        'name' => 'Username',
-        'status' => 'Status',
-        'world' => 'World',
-        'online' => 'Online',
-        'offline' => 'Offline',
-        'op' => 'Operator',
+        'name' => 'Nom d\'utilisateur',
+        'status' => 'Statut',
+        'world' => 'Monde',
+        'online' => 'En ligne',
+        'offline' => 'Hors ligne',
+        'op' => 'Operateur',
     ],
 
     'filters' => [
-        'all' => 'All',
-        'online' => 'Online',
-        'offline' => 'Offline',
+        'all' => 'Tous',
+        'online' => 'En ligne',
+        'offline' => 'Hors linge',
         'op' => 'OP',
-        'banned' => 'Banned',
+        'banned' => 'Bannis',
     ],
 
     'sections' => [

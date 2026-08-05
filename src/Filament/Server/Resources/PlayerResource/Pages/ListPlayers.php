@@ -1,14 +1,14 @@
 <?php
 
-namespace KumaGames\GamePlayerManager\Filament\Server\Resources\PlayerResource\Pages;
+namespace R0B0TB0SS\GamePlayerManager\Filament\Server\Resources\PlayerResource\Pages;
 
 use Filament\Resources\Pages\ListRecords;
-use KumaGames\GamePlayerManager\Filament\Server\Resources\PlayerResource;
-use KumaGames\GamePlayerManager\Services\MinecraftPlayerProvider;
+use R0B0TB0SS\GamePlayerManager\Filament\Server\Resources\PlayerResource;
+use R0B0TB0SS\GamePlayerManager\Services\MinecraftPlayerProvider;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Facades\Filament;
 
-use Filament\Resources\Components\Tab;
+
 
 class ListPlayers extends ListRecords
 {
@@ -19,28 +19,64 @@ class ListPlayers extends ListRecords
         return __('minecraft-player-manager::messages.pages.list');
     }
 
-    public ?string $activeFilter = 'online';
+    protected ?array $cachedPlayers = null;
 
-    protected $queryString = [
-        'activeFilter' => ['except' => 'online'],
-    ];
+    protected function getCachedPlayers(): array
+    {
+        if ($this->cachedPlayers !== null) {
+            return $this->cachedPlayers;
+        }
+
+        $server = Filament::getTenant();
+        $serverId = $server->uuid ?? 'server-1';
+        
+        $provider = new MinecraftPlayerProvider();
+        $this->cachedPlayers = $provider->getPlayers($serverId);
+
+        return $this->cachedPlayers;
+    }
+
+    public function getTabs(): array
+    {
+        $players = collect($this->getCachedPlayers());
+
+        return [
+            'all' => \Filament\Schemas\Components\Tabs\Tab::make()
+                ->label(__('minecraft-player-manager::messages.filters.all'))
+                ->badge($players->count()),
+            'online' => \Filament\Schemas\Components\Tabs\Tab::make()
+                ->label(__('minecraft-player-manager::messages.filters.online'))
+                ->badge($players->where('online', true)->count())
+                ->badgeColor('success'),
+            'offline' => \Filament\Schemas\Components\Tabs\Tab::make()
+                ->label(__('minecraft-player-manager::messages.filters.offline'))
+                ->badge($players->where('online', false)->count())
+                ->badgeColor('gray'),
+            'op' => \Filament\Schemas\Components\Tabs\Tab::make()
+                ->label(__('minecraft-player-manager::messages.filters.op'))
+                ->badge($players->where('is_op', true)->count())
+                ->badgeColor('warning'),
+            'banned' => \Filament\Schemas\Components\Tabs\Tab::make()
+                ->label(__('minecraft-player-manager::messages.filters.banned'))
+                ->badge($players->where('is_banned', true)->count())
+                ->badgeColor('danger'),
+        ];
+    }
 
     public function getTableRecords(): \Illuminate\Support\Collection|\Illuminate\Contracts\Pagination\Paginator|\Illuminate\Contracts\Pagination\CursorPaginator
     {
-        $server = Filament::getTenant();
-        $serverId = $server->uuid ?? 'server-1'; 
-        
-        $provider = new MinecraftPlayerProvider();
-        $data = $provider->getPlayers($serverId);
-        $collection = collect($data)->map(fn ($item) => new \KumaGames\GamePlayerManager\Models\Player($item));
+        $data = $this->getCachedPlayers();
+        $collection = collect($data)->map(fn ($item) => new \R0B0TB0SS\GamePlayerManager\Models\Player($item));
 
-        if ($this->activeFilter === 'online') {
+        $activeTab = $this->activeTab ?? 'all';
+
+        if ($activeTab === 'online') {
             $collection = $collection->where('online', true);
-        } elseif ($this->activeFilter === 'offline') {
+        } elseif ($activeTab === 'offline') {
             $collection = $collection->where('online', false);
-        } elseif ($this->activeFilter === 'op') {
+        } elseif ($activeTab === 'op') {
             $collection = $collection->where('is_op', true);
-        } elseif ($this->activeFilter === 'banned') {
+        } elseif ($activeTab === 'banned') {
             $collection = $collection->where('is_banned', true);
         }
 
@@ -55,34 +91,13 @@ class ListPlayers extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [
-            \Filament\Actions\Action::make('filter_all')
-                ->label(__('minecraft-player-manager::messages.filters.all'))
-                ->color(fn() => $this->activeFilter === 'all' ? 'primary' : 'gray')
-                ->action(fn() => $this->activeFilter = 'all'),
-            \Filament\Actions\Action::make('filter_online')
-                ->label(__('minecraft-player-manager::messages.filters.online'))
-                ->color(fn() => $this->activeFilter === 'online' ? 'success' : 'gray')
-                ->action(fn() => $this->activeFilter = 'online'),
-            \Filament\Actions\Action::make('filter_offline')
-                ->label(__('minecraft-player-manager::messages.filters.offline'))
-                ->color(fn() => $this->activeFilter === 'offline' ? 'gray' : 'gray') // Gray vs Gray? Maybe 'secondary' or 'info'
-                ->action(fn() => $this->activeFilter = 'offline'),
-            \Filament\Actions\Action::make('filter_op')
-                ->label(__('minecraft-player-manager::messages.filters.op'))
-                ->color(fn() => $this->activeFilter === 'op' ? 'warning' : 'gray')
-                ->action(fn() => $this->activeFilter = 'op'),
-            \Filament\Actions\Action::make('filter_banned')
-                ->label(__('minecraft-player-manager::messages.filters.banned'))
-                ->color(fn() => $this->activeFilter === 'banned' ? 'danger' : 'gray')
-                ->action(fn() => $this->activeFilter = 'banned'),
-        ];
+        return [];
     }
 
     protected function getHeaderWidgets(): array
     {
         return [
-            \KumaGames\GamePlayerManager\Filament\Server\Widgets\PlayerCountWidget::class,
+            \R0B0TB0SS\GamePlayerManager\Filament\Server\Widgets\PlayerCountWidget::class,
         ];
     }
 
@@ -113,6 +128,6 @@ class ListPlayers extends ListRecords
         $details = $provider->getPlayerDetails($serverId, $key);
         $data = array_merge($recordRaw, $details);
         
-        return new \KumaGames\GamePlayerManager\Models\Player($data);
+        return new \R0B0TB0SS\GamePlayerManager\Models\Player($data);
     }
 }

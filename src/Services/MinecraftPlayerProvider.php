@@ -1,28 +1,31 @@
 <?php
 
 
-namespace KumaGames\GamePlayerManager\Services;
+namespace R0B0TB0SS\GamePlayerManager\Services;
 
 use App\Models\Server;
 use Illuminate\Support\Facades\Log;
 use App\Repositories\Wings\DaemonCommandRepository;
 
+use R0B0TB0SS\GamePlayerManager\Services\Nbt\NbtService;
+
 class MinecraftPlayerProvider implements GamePlayerService
-{
+{ 
+    private $nbtService;
+
+    public function __construct() {
+        $this->nbtService = new NbtService();
+    }
     public function sendRconCommand(string $serverId, string $command): ?string
     {
         $server = Server::where('uuid', $serverId)->first();
-        if (!$server) {
-            Log::error("Server not found for UUID: $serverId");
-            return null;
-        }
+        if (!$server) return null;
 
         try {
-            $server->send($command);
-            Log::info("Sent command to $serverId: $command");
-            return "Command sent"; 
+        // Retourne le r�sultat brut (ex: la liste des joueurs pour la commande "list")
+            return $server->send($command);
         } catch (\Exception $e) {
-            Log::error("Failed to send command to $serverId: " . $e->getMessage());
+            Log::error("RCON Error: " . $e->getMessage());
             return null;
         }
     }
@@ -134,7 +137,32 @@ class MinecraftPlayerProvider implements GamePlayerService
             // usercache.json might not exist on new servers
         }
 
-        // 3. Online Players via Query
+        // 4. Online Players via Query
+        $onlinePlayers = $this->getOnlinePlayersViaQuery($server);
+        foreach ($onlinePlayers as $playerName) {
+            $lowerName = strtolower($playerName);
+    
+            // On force le statut � online si le joueur est trouv� par Query
+            if (isset($allPlayers[$lowerName])) {
+                $allPlayers[$lowerName]['online'] = true;
+            } else {
+            // Si le joueur n'�tait ni OP, ni Banni, ni dans le cache, on l'ajoute
+                $allPlayers[$lowerName] = [
+                    'id' => $playerName,
+                    'name' => $playerName,
+                    'online' => true,
+                    'is_op' => isset($opNames[$lowerName]),
+                    'is_banned' => false,
+                ];
+            }
+        }
+
+        return array_values($allPlayers);
+    }
+
+    private function getOnlinePlayersViaQuery(Server $server): array
+    {
+        $players = [];
         try {
             $ip = $server->allocation->alias ?? $server->allocation->ip;
             $port = $server->allocation->port;
@@ -172,19 +200,8 @@ class MinecraftPlayerProvider implements GamePlayerService
                             $rawPlayers = explode("\x00", $playerSection);
 
                             foreach ($rawPlayers as $playerName) {
-                                if (empty($playerName)) continue;
-                                $lowerName = strtolower($playerName);
-                                
-                                if (isset($allPlayers[$lowerName])) {
-                                    $allPlayers[$lowerName]['online'] = true;
-                                } else {
-                                    $allPlayers[$lowerName] = [
-                                        'id' => $playerName,
-                                        'name' => $playerName,
-                                        'online' => true,
-                                        'is_op' => isset($opNames[$lowerName]),
-                                        'is_banned' => false, // Assumption, though queries don't show bans usually
-                                    ];
+                                if (!empty($playerName)) {
+                                    $players[] = $playerName;
                                 }
                             }
                         }
@@ -195,13 +212,12 @@ class MinecraftPlayerProvider implements GamePlayerService
         } catch (\Exception $e) {
             // Query failed
         }
-
-        return array_values($allPlayers);
+        return $players;
     }
 
     public function getPlayerDetails(string $serverId, string $playerId): array
     {
-        $server = Server::where('uuid', $serverId)->with('allocation')->first();
+        $server = Server::where('uuid', $serverId)->orWhere('uuid_short', $serverId)->first();
         if (!$server) return [];
         
         // Resolve UUID from Username early (Need UUID for stats file and UI)
@@ -228,6 +244,8 @@ class MinecraftPlayerProvider implements GamePlayerService
             'uuid' => $uuid ?? 'Unknown',
             'status' => 'Offline', // Default
             'is_op' => false,
+            'is_op' => false,
+            'is_banned' => false,
             'raw_stats' => 'RCON disabled or unavailable.',
             'health' => null,
             'food' => null,
@@ -248,6 +266,20 @@ class MinecraftPlayerProvider implements GamePlayerService
                 foreach ($ops as $op) {
                     if (strtolower($op['name'] ?? '') === strtolower($playerId)) {
                         $details['is_op'] = true;
+                        break;
+                    }
+                }
+            }
+        } catch (\Exception $e) { /* Ignore */ }
+
+        // Check Banned status
+        try {
+            $bannedContent = $fileRepository->getContent('banned-players.json');
+            $banned = json_decode($bannedContent, true);
+            if (is_array($banned)) {
+                foreach ($banned as $ban) {
+                    if (strtolower($ban['name'] ?? '') === strtolower($playerId)) {
+                        $details['is_banned'] = true;
                         break;
                     }
                 }
@@ -286,7 +318,34 @@ class MinecraftPlayerProvider implements GamePlayerService
         $primaryHost = $server->allocation->alias ?? $server->allocation->ip;
         $hasPass = !empty($rconPassword);
 
-        if (!$enableRcon || !$rconPort || !$hasPass) {
+
+        
+        // Check setting
+        $rconEnabled = env('MC_PLAYER_MANAGER_RCON_ENABLED', false);
+
+        if (!$rconEnabled) {
+             // Try to get status via Query even if RCON is disabled
+             $onlinePlayers = $this->getOnlinePlayersViaQuery($server);
+             $isOnline = false;
+             foreach ($onlinePlayers as $p) {
+                 if (strtolower($p) === strtolower($playerId)) {
+                     $isOnline = true;
+                     break;
+                 }
+             }
+             
+             $details['status'] = $isOnline ? 'Online' : 'Offline';
+             $details['raw_stats'] = $isOnline 
+                ? 'Online (RCON disabled)' 
+                : 'Offline';
+
+             // Always try NBT if RCON is disabled (User request)
+             $nbtDetails = $this->getOfflineDetailsFromNbt($server, $uuid ?? $playerId);
+             if ($nbtDetails) {
+                 $details = array_merge($details, $nbtDetails);
+                 $details['raw_stats'] = 'RconDisabled';
+             }
+        } elseif (!$enableRcon || !$rconPort || !$hasPass) {
             $details['raw_stats'] = 'RCON is not enabled in server.properties.';
             $details['status'] = 'Config Error';
         } else {
@@ -388,7 +447,7 @@ class MinecraftPlayerProvider implements GamePlayerService
                         $item = [];
                         
                         // ID
-                        if (preg_match('/id:\s*"?(?:minecraft:)?([^",\}\s]+)"?/i', $itemStr, $kv)) {
+                        if (preg_match('/}, id:\s*"?([^",\}\s]+)"?/i', $itemStr, $kv)) {
                             $item['id'] = trim($kv[1]);
                         }
                         
@@ -413,15 +472,68 @@ class MinecraftPlayerProvider implements GamePlayerService
 
                     $details['inventory_data'] = $inventory;
                     \Illuminate\Support\Facades\Log::info("PARSED INVENTORY ITEMS (Iterative): " . count($inventory));
+
+                    $enderchest = [];
+                    $maxItemsEC = 36; // Safety limit (Players typically have max 41 items: 36 main + 4 armor + 1 offhand)
+                    
+                    for ($i = 0; $i < $maxItemsEC; $i++) {
+                        $itemRes = $rcon->sendCommand("data get entity $playerId EnderItems[$i]");
+                        
+                        // Break if index doesn't exist (e.g. "No such element", "Found no elements")
+                        if (!$itemRes || str_contains($itemRes, 'No such element') || str_contains($itemRes, 'Found no elements') || str_contains($itemRes, 'No entity was found')) {
+                            break;
+                        }
+
+                        // Response format: "<player> has the following entity data: {id:..., Count:...}"
+                        // extract the part after "data: "
+                        $dataPos = strpos($itemRes, 'data: ');
+                        $itemStr = ($dataPos !== false) ? substr($itemRes, $dataPos + 6) : $itemRes;
+                        
+                        $item = [];
+                        
+                        // ID
+                        if (preg_match('/}, id:\s*"?([^",\}\s]+)"?/i', $itemStr, $kv)) {
+                            $item['id'] = trim($kv[1]);
+                        }
+                        
+                        // Count
+                        if (preg_match('/Count:\s*(\d+)b?/i', $itemStr, $kv)) {
+                            $item['count'] = (int)$kv[1];
+                        } else {
+                            $item['count'] = 1;
+                        }
+                        
+                        // Slot
+                        if (preg_match('/Slot:\s*(\d+)b?/i', $itemStr, $kv)) {
+                            $item['slot'] = (int)$kv[1];
+                        }
+
+                        if (isset($item['id']) && isset($item['slot'])) {
+                            $enderchest[] = $item;
+                            // Debug log for checking correct parsing
+                             if ($i < 3) \Illuminate\Support\Facades\Log::info("DEBUG ENDER CHEST Correctly Parsed Index $i: {$item['id']} (Slot {$item['slot']})");
+                        }
+                    }
+
+                    $details['enderchest_data'] = $enderchest;
+                    \Illuminate\Support\Facades\Log::info("PARSED ENDER CHEST ITEMS (Iterative): " . count($enderchest));
+
                     
                     // Verify if we actually got data, otherwise might be offline (entity not found)
                     // If all values are null/empty, likely offline or bad UUID
                     if ($h === null && $f === null && $gmVal === null) {
                          // Check raw response of one command to see if "No entity"
                          $check = $rcon->sendCommand("data get entity $playerId Health");
-                         if (str_contains($check, 'No entity') || str_contains($check, 'No player')) {
+                         if (str_contains($check, 'No entity was found')) {
                              $details['status'] = 'Offline'; 
                              $details['raw_stats'] = "Player is Offline";
+                             
+                             // Fallback to NBT
+                             $nbtDetails = $this->getOfflineDetailsFromNbt($server, $uuid ?? $playerId);
+                             if ($nbtDetails) {
+                                 $details = array_merge($details, $nbtDetails);
+                                 $details['raw_stats'] = 'Offline (Data from Save File)';
+                             }
                          }
                     }
 
@@ -467,26 +579,176 @@ class MinecraftPlayerProvider implements GamePlayerService
 
     public function ban(string $serverId, string $playerId, string $reason = ''): bool
     {
-        $cmd = trim("ban $playerId $reason");
+        $cmd = "ban $playerId";
+        if (!empty($reason)) {
+            $cmd .= " $reason";
+        }
         return $this->sendRconCommand($serverId, $cmd) !== null;
+    }
+
+    public function pardon(string $serverId, string $playerId): bool
+    {
+        return $this->sendRconCommand($serverId, "pardon $playerId") !== null;
     }
 
     public function op(string $serverId, string $playerId): bool
     {
-        $cmd = trim("op $playerId");
-        return $this->sendRconCommand($serverId, $cmd) !== null;
+        return $this->sendRconCommand($serverId, "op $playerId") !== null;
     }
 
     public function deop(string $serverId, string $playerId): bool
     {
-        $cmd = trim("deop $playerId");
-        return $this->sendRconCommand($serverId, $cmd) !== null;
+        return $this->sendRconCommand($serverId, "deop $playerId") !== null;
     }
 
     public function clearInventory(string $serverId, string $playerId): bool
     {
-        $cmd = trim("clear $playerId");
-        // returns "Cleared the inventory of <player>" on success, or "No items to clear", or "No player found"
-        return $this->sendRconCommand($serverId, $cmd) !== null;
+        return $this->sendRconCommand($serverId, "clear $playerId") !== null;
+    }
+
+    public function getServerProperties(string $serverId): array
+    {
+        $server = Server::where('uuid', $serverId)->orWhere('uuid_short', $serverId)->first();
+        if (!$server) return [];
+
+        /** @var \App\Repositories\Daemon\DaemonFileRepository $fileRepository */
+        $fileRepository = app(\App\Repositories\Daemon\DaemonFileRepository::class);
+        $fileRepository->setServer($server);
+
+        $props = [
+            'max_players' => 20,
+            'motd' => 'A Minecraft Server',
+            'level_name' => 'world',
+        ];
+
+        try {
+            $content = $fileRepository->getContent('server.properties');
+            
+            if (preg_match('/^\s*max-players\s*=\s*(\d+)/m', $content, $m)) {
+                $props['max_players'] = (int)$m[1];
+            }
+            if (preg_match('/^\s*motd\s*=\s*(.*)$/m', $content, $m)) {
+                $rawMotd = trim($m[1]);
+                // Handle basic unicode escape if present
+                $props['motd'] = json_decode('"'.$rawMotd.'"') ?? $rawMotd;
+            }
+            if (preg_match('/^\s*level-name\s*=\s*(.*)$/m', $content, $m)) {
+                $props['level_name'] = trim($m[1]);
+            }
+
+        } catch (\Exception $e) { /* Ignore */ }
+
+        return $props;
+    }
+
+    private function getOfflineDetailsFromNbt(Server $server, string $uuid): ?array
+    {
+        if (empty($uuid) || $uuid === 'Unknown') return null;
+
+        // Locate File
+        // Usually world/playerdata/<uuid>.dat
+        // We need to know the level-name
+        
+        /** @var \App\Repositories\Daemon\DaemonFileRepository $fileRepository */
+        $fileRepository = app(\App\Repositories\Daemon\DaemonFileRepository::class);
+        $fileRepository->setServer($server);
+
+        $levelName = 'world';
+        try {
+            $props = $fileRepository->getContent('server.properties');
+            if (preg_match('/^\s*level-name\s*=\s*(.*)$/m', $props, $matches)) {
+                $levelName = trim($matches[1]);
+            }
+        } catch (\Exception $e) {}
+
+        // Construct path relative to server root
+        // Note: DaemonFileRepository usually works with relative paths for content, but we need absolute path for NbtService?
+        // Actually, NbtService needs a local file system path or raw content.
+        // DaemonFileRepository::getContent returns string content. 
+        // Our NbtService::parseFile expects a PATH. 
+        // However, we are in a plugin on the panel. The file might be on a remote node (Wings).
+        // Standard Pelican Panel plugins run on the Panel side. Files are fetched from Wings via API/Repository.
+        // We CANNOT directly access disk unless node is local.
+        // So we should fetch CONTENT using DaemonFileRepository (which handles Wings API) and pass CONTENT to NbtParser.
+        
+        $path = "$levelName/playerdata/$uuid.dat";
+        
+        try {
+            // This pulls the raw binary content strings (API response)
+            // Warning: large files might be an issue, but player.dat is small (few KB).
+            $content = $fileRepository->getContent($path);
+            
+            // adapt NbtService to accept content string
+            $data = $this->nbtService->parseString($content);
+            
+            if (empty($data)) return null;
+
+            $result = [];
+
+            // Extract Health
+            if (isset($data['Health'])) $result['health'] = $data['Health']; // Float on NBT
+            
+            // Extract Food
+            if (isset($data['foodLevel'])) $result['food'] = $data['foodLevel']; // Int
+
+            // Extract XP
+            if (isset($data['XpLevel'])) $result['level'] = $data['XpLevel'];
+
+            // Extract Gamemode
+            if (isset($data['playerGameType'])) {
+                 $gmById = [0 => 'Survival', 1 => 'Creative', 2 => 'Adventure', 3 => 'Spectator'];
+                 $result['gamemode'] = $gmById[$data['playerGameType']] ?? 'Unknown';
+            }
+
+            // Extract Inventory
+            // NBT Inventory structure: List of Compounds {Slot:byte, id:string, Count:byte, tag:{...}}
+            if (isset($data['Inventory']) && is_array($data['Inventory'])) {
+                $inv = [];
+                foreach ($data['Inventory'] as $item) {
+                     // Normalize keys to match RCON format
+                     $slot = $item['Slot'] ?? $item['slot'] ?? null;
+                     $id = $item['id'] ?? $item['Id'] ?? null;
+                     $count = $item['Count'] ?? $item['count'] ?? 1;
+
+                     // NBT Slot is Byte (signed?), RCON is int.
+                     // Filter out invalid items
+                     if ($id && $slot !== null) {
+                         $inv[] = [
+                             'slot' => $slot,
+                             'id' => $id,
+                             'count' => $count,
+                         ];
+                     }
+                }
+                $result['inventory_data'] = $inv;
+            }
+
+            if (isset($data['EnderItems']) && is_array($data['EnderItems'])) {
+                $inv = [];
+                foreach ($data['EnderItems'] as $item) {
+                     // Normalize keys to match RCON format
+                     $slot = $item['Slot'] ?? $item['slot'] ?? null;
+                     $id = $item['id'] ?? $item['Id'] ?? null;
+                     $count = $item['Count'] ?? $item['count'] ?? 1;
+
+                     // NBT Slot is Byte (signed?), RCON is int.
+                     // Filter out invalid items
+                     if ($id && $slot !== null) {
+                         $inv[] = [
+                             'slot' => $slot,
+                             'id' => $id,
+                             'count' => $count,
+                         ];
+                     }
+                }
+                $result['enderchest_data'] = $inv;
+            }
+
+            return $result;
+            
+        } catch (\Exception $e) {
+            // File not found or read error
+            return null;
+        }
     }
 }

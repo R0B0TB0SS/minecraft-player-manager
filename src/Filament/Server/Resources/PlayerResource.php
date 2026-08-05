@@ -1,27 +1,45 @@
 <?php
 
-namespace KumaGames\GamePlayerManager\Filament\Server\Resources;
+namespace R0B0TB0SS\GamePlayerManager\Filament\Server\Resources;
 
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use KumaGames\GamePlayerManager\Filament\Server\Resources\PlayerResource\Pages;
-use KumaGames\GamePlayerManager\Services\MinecraftPlayerProvider;
+use R0B0TB0SS\GamePlayerManager\Filament\Server\Resources\PlayerResource\Pages;
+use R0B0TB0SS\GamePlayerManager\Services\MinecraftPlayerProvider;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 
 class PlayerResource extends Resource
 {
-    protected static ?string $model = \KumaGames\GamePlayerManager\Models\Player::class;
+    protected static ?string $model = \R0B0TB0SS\GamePlayerManager\Models\Player::class;
     protected static ?string $slug = 'game-players';
-    protected static bool $isScopedToTenant = false; // Disable automatic tenant scoping since we handle data manually
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-users';
+    protected static string | \BackedEnum | null $navigationIcon = 'tabler-users-group';
+    
+    public static function getNavigationSort(): ?int
+    {
+        return (int) env('MC_PLAYER_MANAGER_NAV_SORT', 2);
+    }
+
     protected static ?string $navigationLabel = null; 
 
     public static function getNavigationLabel(): string
     {
         return __('minecraft-player-manager::messages.navigation_label');
+    }
+
+    public static function canAccess(): bool
+    {
+        $server = \Filament\Facades\Filament::getTenant();
+        // Check if the server has the 'minecraft' tag
+        $tags = $server->egg->tags ?? [];
+        return parent::canAccess() && in_array('minecraft', $tags);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
     }
 
     public static function table(Table $table): Table
@@ -35,11 +53,10 @@ class PlayerResource extends Resource
                         // Generic Java Edition Username Regex (approx)
                         // If it contains anything other than a-z, 0-9, or _, it's likely Bedrock or invalid for Minotar
                         if (!preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
-                            return "https://minotar.net/avatar/MHF_Steve/32";
+                            return "https://mc-heads.net/head/MHF_Steve/32";
                         }
-                        return "https://minotar.net/avatar/{$name}/32";
-                    })
-                    ->circular(),
+                        return "https://mc-heads.net/head/{$name}/32";
+                    }),
 
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
@@ -55,12 +72,14 @@ class PlayerResource extends Resource
                         'Online' => 'success',
                         'Banned' => 'danger',
                         'Offline' => 'gray',
+                        'ERR' => 'warning',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'Online' => __('minecraft-player-manager::messages.columns.online'),
                         'Banned' => __('minecraft-player-manager::messages.filters.banned'),
                         'Offline' => __('minecraft-player-manager::messages.columns.offline'),
+                        'ERR' => 'RCON Debug',
                         default => $state,
                     })
                     ->label(__('minecraft-player-manager::messages.columns.status')),
@@ -115,17 +134,29 @@ class PlayerResource extends Resource
                     ->requiresConfirmation(),
 
                 Action::make('ban')
-                    ->color('danger')
-                    ->icon('heroicon-m-no-symbol')
+                    ->label(fn ($record) => $record->is_banned ? __('minecraft-player-manager::messages.actions.ban.label_unban') : __('minecraft-player-manager::messages.actions.ban.label_ban'))
+                    ->color(fn ($record) => $record->is_banned ? 'success' : 'danger')
+                    ->icon(fn ($record) => $record->is_banned ? 'heroicon-m-check-circle' : 'heroicon-m-no-symbol')
                     ->button()
-                    ->action(function ($record) {
+                    ->form(fn ($record) => $record->is_banned ? [] : [
+                        \Filament\Forms\Components\TextInput::make('reason')
+                            ->label(__('minecraft-player-manager::messages.actions.ban.reason'))
+                            ->default(__('minecraft-player-manager::messages.actions.ban.default_reason')),
+                    ])
+                    ->action(function (array $data, $record) {
                         if (!$record) return;
                         $server = \Filament\Facades\Filament::getTenant();
                         if (!$server) return;
 
                         $provider = app(MinecraftPlayerProvider::class);
-                        $provider->sendRconCommand($server->uuid, "ban {$record->name}");
-                        \Filament\Notifications\Notification::make()->title(__('minecraft-player-manager::messages.actions.ban.notify'))->success()->send();
+                        
+                        if ($record->is_banned) {
+                            $provider->pardon($server->uuid, $record->name);
+                            \Filament\Notifications\Notification::make()->title(__('minecraft-player-manager::messages.actions.ban.notify_unban'))->success()->send();
+                        } else {
+                            $provider->ban($server->uuid, $record->name, $data['reason'] ?? null);
+                            \Filament\Notifications\Notification::make()->title(__('minecraft-player-manager::messages.actions.ban.notify_ban'))->success()->send();
+                        }
                     })
                     ->requiresConfirmation(),
             ]);
@@ -160,10 +191,14 @@ class PlayerResource extends Resource
                         \Filament\Forms\Components\TextInput::make('deaths')->label(__('minecraft-player-manager::messages.fields.deaths'))->disabled(),
                     ])->columns(4),
 
-                // 3. Live Data (RCON)
                 \Filament\Schemas\Components\Section::make(__('minecraft-player-manager::messages.sections.live_status'))
-                    ->description(__('minecraft-player-manager::messages.sections.live_status_desc'))
+                    ->description(fn ($record) => match($record?->raw_stats) {
+                        'Offline (Data from Save File)' => __('minecraft-player-manager::messages.sections.offline_status_desc'),
+                        'RconDisabled' => __('minecraft-player-manager::messages.sections.rcon_disabled_status_desc'),
+                        default => __('minecraft-player-manager::messages.sections.live_status_desc'),
+                    })
                     ->schema([
+
                         \Filament\Forms\Components\ViewField::make('visual_stats')
                             ->label(__('minecraft-player-manager::messages.fields.status'))
                             ->view('minecraft-player-manager::filament.server.resources.player-resource.widgets.visual-stats-view')
@@ -183,16 +218,36 @@ class PlayerResource extends Resource
                                 default => $state,
                             })
                             ->columnSpan(2),
-                    ])->columns(4),
+                    ])->columns(4)->collapsible(),
 
-                // 4. Inventory & Debug
-                 \Filament\Schemas\Components\Section::make(__('minecraft-player-manager::messages.sections.inventory'))
+                // Inventory Section
+                \Filament\Schemas\Components\Section::make(__('minecraft-player-manager::messages.sections.inventory'))
                     ->schema([
                          \Filament\Forms\Components\ViewField::make('inventory_data')
                             ->label(__('minecraft-player-manager::messages.fields.visual_inventory'))
                             ->view('minecraft-player-manager::filament.server.resources.player-resource.widgets.inventory-view')
                             ->columnSpanFull(),
-                    ]),
+                    ])->collapsible(),
+                    
+                // Ender Chest Section
+                \Filament\Schemas\Components\Section::make(__('minecraft-player-manager::messages.sections.enderchest'))
+                    ->schema([
+                         \Filament\Forms\Components\ViewField::make('enderchest_data')
+                            ->label(__('minecraft-player-manager::messages.fields.visual_enderchest'))
+                            ->view('minecraft-player-manager::filament.server.resources.player-resource.widgets.enderchest-view')
+                            ->columnSpanFull(),
+                    ])->collapsible(),
+
+                // Management Section (Actions)
+                 \Filament\Schemas\Components\Section::make(__('minecraft-player-manager::messages.sections.management'))
+                    ->description(__('minecraft-player-manager::messages.sections.management_desc'))
+                    ->schema([
+                        \Filament\Forms\Components\ViewField::make('management_actions')
+                            ->view('minecraft-player-manager::filament.server.resources.player-resource.widgets.management-actions')
+                            ->columnSpanFull(),
+                    ])->collapsible(),
+                
+
 
 
             ]);

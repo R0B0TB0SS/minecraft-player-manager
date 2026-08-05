@@ -1,6 +1,6 @@
 <?php
 
-namespace KumaGames\GamePlayerManager\Models;
+namespace R0B0TB0SS\GamePlayerManager\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Livewire\Wireable;
