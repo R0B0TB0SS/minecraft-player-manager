@@ -3,7 +3,7 @@
 ---
 
 <a name="english"></a>
-## 🇬🇧 English
+## English
 
 ### ⚠️ Note from the Developer
 ### Overview
@@ -18,6 +18,8 @@ View real-time status with RCON, check inventories, and perform administrative a
     *   Statistics from world data (Play time, Mobs killed, Distance walked, Deaths).
 *   **Inventory Viewer**:
     *   Visual representation of player inventory and armor slots.
+*   **EnderChest Viewer**
+    *   Visual representation of player enderchest
 *   **Management Actions**:
     *   **kick**: Kick a player from the server.
     *   **ban**: Ban a player (with reason).
