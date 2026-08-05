@@ -32,6 +32,7 @@ return [
         'inventory' => 'Inventory',
         'management' => 'Management',
         'management_desc' => 'Perform actions on this player',
+        'enderchest' => 'Ender Chest',
     ],
 
     'fields' => [

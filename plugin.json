@@ -13,5 +13,9 @@
         "admin",
         "server"
     ],
-    "panel_version": null
+    "panel_version": null,
+    "meta": {
+        "status": "enabled",
+        "status_message": null
+    }
 }

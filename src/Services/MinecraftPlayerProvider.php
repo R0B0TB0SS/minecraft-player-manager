@@ -222,6 +222,119 @@ class MinecraftPlayerProvider implements GamePlayerService
         return $players;
     }
 
+    /**
+     * Récupère l'armure du joueur en essayant d'abord la nouvelle méthode
+     * (tag "equipment", format post-25w03a), puis en repliant sur l'ancienne
+     * méthode (slots réservés dans Inventory) si le nouveau tag n'existe pas.
+     *
+     * Retour : ['head' => id|null, 'chest' => id|null, 'legs' => id|null, 'feet' => id|null, 'offhand' => id|null]
+     */
+    private function fetchArmorData($rcon, string $playerId): array
+    {
+        $armor = [
+            'head'    => null,
+            'chest'   => null,
+            'legs'    => null,
+            'feet'    => null,
+            'offhand' => null,
+        ];
+
+        // Aide interne pour extraire l'id d'un item depuis un fragment NBT
+        // (ex: '{id: "minecraft:netherite_helmet", count: 1}')
+        $extractId = function (string $raw): ?string {
+            if (preg_match('/[{,]\s*id:\s*"?([a-zA-Z0-9_:\.\-]+)"?/i', $raw, $kv)) {
+                return trim($kv[1]);
+            }
+            return null;
+        };
+
+        // --- 1. Nouvelle façon : une seule requête sur le tag "equipment" complet ---
+        // On évite de faire 5 requêtes séparées (une par slot) car les messages
+        // d'erreur pour "slot vide" vs "chemin inexistant" varient selon les
+        // versions/forks du serveur et rendent la détection peu fiable.
+        // Ici on récupère tout le compound "equipment" d'un coup et on parse
+        // localement, comme dans : "<joueur> has the following entity data:
+        // {head: {id: "minecraft:netherite_helmet", count: 1}, ...}"
+        $res = $rcon->sendCommand("data get entity $playerId equipment");
+
+        Log::debug("fetchArmorData raw response for $playerId: " . json_encode($res));
+
+        if (!$res || str_contains($res, 'No entity was found')) {
+            // Joueur hors ligne / uuid invalide : le reste du flux basculera
+            // sur getOfflineDetailsFromNbt(), inutile d'aller plus loin.
+            return $armor;
+        }
+
+        $pathMissing = str_contains($res, 'no matching element')
+            || str_contains($res, 'Unknown or incomplete command')
+            || str_contains($res, 'Expected an NBT')
+            || str_contains($res, 'is not present')
+            || str_contains($res, 'Found no elements')
+            || str_contains($res, 'No such element');
+
+        if (!$pathMissing) {
+            // On isole le contenu après "data: " si présent
+            $dataPos = strpos($res, 'data: ');
+            $body = ($dataPos !== false) ? substr($res, $dataPos + 6) : $res;
+
+            $slotsNew = ['head', 'chest', 'legs', 'feet', 'offhand'];
+            $foundAny = false;
+
+            foreach ($slotsNew as $slot) {
+                // Cherche "<slot>: {" puis prend le texte jusqu'à la première "}"
+                // rencontrée. Comme "id" est toujours le premier champ du compound
+                // d'un item, il est capturé même si la compound est tronquée par
+                // des sous-structures imbriquées (components, enchantments, etc.)
+                if (preg_match('/\b' . $slot . '\s*:\s*\{(.*?)\}/is', $body, $m)) {
+                    $id = $extractId($m[1]);
+                    if ($id !== null) {
+                        $armor[$slot] = $id;
+                        $foundAny = true;
+                    }
+                }
+            }
+
+            // Le champ "equipment" existe : que le joueur porte ou non une armure,
+            // on considère la nouvelle méthode comme valide et on ne bascule pas
+            // sur l'ancienne (un joueur nu doit rester avec des slots à null).
+            if ($foundAny || str_contains($body, ':')) {
+                return $armor;
+            }
+        }
+
+        // --- 2. Ancienne façon (fallback) : slots réservés dans Inventory ---
+        // 103 = casque, 102 = torse, 101 = jambes, 100 = pieds, -106 = main secondaire
+        $legacySlotMap = [
+            103  => 'head',
+            102  => 'chest',
+            101  => 'legs',
+            100  => 'feet',
+            -106 => 'offhand',
+        ];
+
+        foreach ($legacySlotMap as $slotId => $slotName) {
+            $res = $rcon->sendCommand("data get entity $playerId Inventory[{Slot:{$slotId}b}]");
+
+            if (!$res
+                || str_contains($res, 'No such element')
+                || str_contains($res, 'Found no elements')
+                || str_contains($res, 'No entity was found')
+            ) {
+                continue;
+            }
+
+            $dataPos = strpos($res, 'data: ');
+            $itemStr = ($dataPos !== false) ? substr($res, $dataPos + 6) : $res;
+
+            $id = $extractId($itemStr);
+            if ($id !== null) {
+                $armor[$slotName] = $id;
+            }
+        }
+
+        return $armor;
+    }
+
     public function getPlayerDetails(string $serverId, string $playerId): array
     {
         $server = Server::where('uuid', $serverId)->orWhere('uuid_short', $serverId)->first();
@@ -475,8 +588,47 @@ class MinecraftPlayerProvider implements GamePlayerService
                         }
                     }
 
+                    // Armure : nouvelle méthode (equipment) puis ancienne méthode (Inventory slots réservés) en fallback
+                    $armorData = $this->fetchArmorData($rcon, $playerId);
+                    \Illuminate\Support\Facades\Log::info("PARSED ARMOR: " . json_encode($armorData));
+
+                    // IMPORTANT : le template Blade d'affichage de l'inventaire (inv-armor)
+                    // cherche l'armure directement dans $inventory_data aux slots réservés
+                    // 103/102/101/100/-106 (ancien format legacy). Comme sur les versions
+                    // récentes l'armure vit dans le tag "equipment" et n'apparaît plus du
+                    // tout dans la liste "Inventory", on réinjecte ici des entrées pseudo-slot
+                    // pour rester 100% compatible avec le template sans avoir à le modifier.
+                    $armorLegacySlotMap = [
+                        'head'    => 103,
+                        'chest'   => 102,
+                        'legs'    => 101,
+                        'feet'    => 100,
+                        'offhand' => -106,
+                    ];
+                    foreach ($armorLegacySlotMap as $armorKey => $slotNum) {
+                        if (!empty($armorData[$armorKey])) {
+                            // On évite les doublons si l'ancienne méthode (fallback) avait déjà
+                            // rempli ce slot directement depuis Inventory
+                            $alreadyPresent = false;
+                            foreach ($inventory as $existing) {
+                                if (($existing['slot'] ?? null) === $slotNum) {
+                                    $alreadyPresent = true;
+                                    break;
+                                }
+                            }
+                            if (!$alreadyPresent) {
+                                $inventory[] = [
+                                    'id'    => $armorData[$armorKey],
+                                    'count' => 1,
+                                    'slot'  => $slotNum,
+                                ];
+                            }
+                        }
+                    }
+
                     $details['inventory_data'] = $inventory;
-                    \Illuminate\Support\Facades\Log::info("PARSED INVENTORY ITEMS (Iterative): " . count($inventory));
+                    $details['armor_data'] = $armorData;
+                    \Illuminate\Support\Facades\Log::info("PARSED INVENTORY ITEMS (Iterative, armure incluse): " . count($inventory));
 
                     $enderchest = [];
                     $maxItemsEC = 36; // Safety limit (Players typically have max 41 items: 36 main + 4 armor + 1 offhand)
