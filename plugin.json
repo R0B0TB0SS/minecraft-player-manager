@@ -1,6 +1,6 @@
 {
-    "id": "minecraft-player-manager",
-    "name": "Minecraft Player Manager",
+    "id": "rbs-minecraft-player-manager",
+    "name": "ROBOTBOSS Minecraft Player Manager",
     "description": "Manage Minecraft players directly from the Pelican Panel.",
     "category": "plugin",
     "url": "https://github.com/R0B0TB0SS/minecraft-player-manager",
