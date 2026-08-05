@@ -1,10 +1,6 @@
 # Minecraft Player Manager for Pelican Panel
 
-## 🇬🇧 English
-
-### ⚠️ Note from the Developer
-**I am a Japanese developer.**
-While I strive to provide support in English, please understand that my responses might be delayed or rely on translation tools. I appreciate your patience and understanding!
+## English
 
 ### Overview
 **Minecraft Player Manager** is a plugin for [Pelican Panel](https://pelican.dev/) that allows you to manage players on your Minecraft servers directly from the panel.
@@ -45,4 +41,4 @@ View real-time status with RCON, check inventories, and perform administrative a
 ### Usage
 1.  Navigate to the **Server View** in Pelican Panel.
 2.  Click on the **Player** tab in the navigation menu.
-3.  You will see a list of players. Click "View" (or "詳細") to see real-time details and inventory.
+3.  You will see a list of players. Click "View" to see real-time details and inventory.
