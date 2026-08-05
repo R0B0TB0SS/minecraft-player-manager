@@ -23,12 +23,12 @@ return [
 
     'sections' => [
         'identity' => 'Identity',
-        'statistics' => 'Statistics',
-        'statistics_desc' => 'Historical data from world stats',
+        'statistics' => 'Statistiques',
+        'statistics_desc' => 'Donnees historiques des statistiques du monde',
         'live_status' => 'Statut',
         'live_status_desc' => 'Donnees en temps reel du serveur',
-        'offline_status_desc' => 'Offline - Displaying data from last save file',
-        'rcon_disabled_status_desc' => 'RCON disabled - Displaying data from save file',
+        'offline_status_desc' => 'Hors ligne - Affichage des donnees de la derniere sauvegarde',
+        'rcon_disabled_status_desc' => 'RCON desactive - Affichage des donnees de la sauvegarde',
         'inventory' => 'Inventaire',
         'management' => 'Management',
         'management_desc' => 'Perform actions on this player',
