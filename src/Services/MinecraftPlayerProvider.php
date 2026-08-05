@@ -6,6 +6,7 @@ namespace R0B0TB0SS\GamePlayerManager\Services;
 use App\Models\Server;
 use Illuminate\Support\Facades\Log;
 use App\Repositories\Wings\DaemonCommandRepository;
+use App\Repositories\Daemon\DaemonFileRepository;
 
 use R0B0TB0SS\GamePlayerManager\Services\Nbt\NbtService;
 
@@ -27,6 +28,19 @@ class MinecraftPlayerProvider implements GamePlayerService
         } catch (\Exception $e) {
             Log::error("RCON Error: " . $e->getMessage());
             return null;
+        }
+    }
+
+    public function dossierExiste(Server $server, string $dossier): bool
+    {
+        /** @var DaemonFileRepository $repository */
+        $repository = app(DaemonFileRepository::class)->setServer($server);
+
+        try {
+            $repository->getDirectory($dossier);
+            return true;
+        } catch (\Exception $e) {
+            return false;
         }
     }
 
@@ -105,13 +119,6 @@ class MinecraftPlayerProvider implements GamePlayerService
         // 3. Get List of Known Players from usercache.json (Historical/Offline)
         try {
             $cacheContent = $fileRepository->getContent('usercache.json');
-            // DEBUG: Check server.properties for RCON
-            try {
-                $props = $fileRepository->getContent('server.properties');
-                Log::info("DEBUG_SERVER_PROPS: " . substr($props, 0, 500));
-            } catch (\Exception $e) {
-                Log::error("DEBUG_SERVER_PROPS_ERROR: " . $e->getMessage());
-            }
 
             $cachedPlayers = json_decode($cacheContent, true);
             if (is_array($cachedPlayers)) {
@@ -244,7 +251,6 @@ class MinecraftPlayerProvider implements GamePlayerService
             'uuid' => $uuid ?? 'Unknown',
             'status' => 'Offline', // Default
             'is_op' => false,
-            'is_op' => false,
             'is_banned' => false,
             'raw_stats' => 'RCON disabled or unavailable.',
             'health' => null,
@@ -291,6 +297,7 @@ class MinecraftPlayerProvider implements GamePlayerService
         $rconPort = null;
         $rconPassword = null;
         $enableRcon = false;
+        $propsContent = null;
 
         try {
             $propsContent = $fileRepository->getContent('server.properties');
@@ -304,11 +311,6 @@ class MinecraftPlayerProvider implements GamePlayerService
             }
             if (preg_match('/^\s*rcon\.password\s*=\s*(.*)$/m', $propsContent, $m)) {
                 $rconPassword = trim($m[1]);
-            } else {
-                 // Debug why regex failed
-                 $lines = explode("\n", $propsContent);
-                 $passLine = array_values(array_filter($lines, fn($l) => str_contains($l, 'rcon.password')));
-                 \Illuminate\Support\Facades\Log::info("DEBUG RCON PASSWORD LINE: " . json_encode($passLine));
             }
             
         } catch (\Exception $e) {
@@ -321,7 +323,7 @@ class MinecraftPlayerProvider implements GamePlayerService
 
         
         // Check setting
-        $rconEnabled = env('MC_PLAYER_MANAGER_RCON_ENABLED', false);
+        $rconEnabled = config('minecraft-player-manager.rcon_enabled');
 
         if (!$rconEnabled) {
              // Try to get status via Query even if RCON is disabled
@@ -353,7 +355,6 @@ class MinecraftPlayerProvider implements GamePlayerService
             $hostsToTry = array_unique([$primaryHost, '127.0.0.1', 'localhost']);
             
             $connected = false;
-            $lastError = '';
             $rcon = null; // Initialize $rcon outside the loop
 
             foreach ($hostsToTry as $host) {
@@ -369,9 +370,14 @@ class MinecraftPlayerProvider implements GamePlayerService
                 }
                 // Log failure only if all fail, or rely on RconService logs
             }
-            
-                if ($rcon->connect()) {
-                    $connected = true;
+
+            // FIX: on ne rappelle plus $rcon->connect() une seconde fois ici.
+            // La boucle ci-dessus a déjà établi la connexion (si possible) et
+            // renseigné $connected. Rappeler connect() sur un socket déjà
+            // ouvert échouait systématiquement, ce qui sautait tout le bloc
+            // de récupération Health/Food/XP/Gamemode/Inventory/EnderChest
+            // pour les joueurs connectés.
+            if ($connected) {
                     // Check if online first by checking root
                     // But actually, asking for a specific path directly is fine. If entity not found, it returns "No entity..."
                     
@@ -407,10 +413,6 @@ class MinecraftPlayerProvider implements GamePlayerService
                     // XP Level
                     $xl = $fetchInt('XpLevel'); 
                     if ($xl === null) $xl = $fetchInt('xpLevel');
-                    if ($xl === null) {
-                         // Fallback to XpTotal if level missing? No, that's different.
-                         // Maybe "lev" (unlikely)
-                    }
                     if ($xl !== null) $details['level'] = $xl;
 
                     // Gamemode
@@ -418,11 +420,8 @@ class MinecraftPlayerProvider implements GamePlayerService
                     if ($gmVal !== null) {
                         $gmById = [0 => 'Survival', 1 => 'Creative', 2 => 'Adventure', 3 => 'Spectator'];
                         $details['gamemode'] = $gmById[$gmVal] ?? 'Unknown';
-                    } else {
-                        // Try "gamemode" just in case? Usually playerGameType
                     }
 
-                    // Inventory
                     // Inventory
                     // Fetch items iteratively to handle RCON truncation limits (4KB)
                     // Large inventories with NBT tags often exceed the limit, causing data loss.
@@ -447,19 +446,25 @@ class MinecraftPlayerProvider implements GamePlayerService
                         $item = [];
                         
                         // ID
-                        if (preg_match('/}, id:\s*"?([^",\}\s]+)"?/i', $itemStr, $kv)) {
+                        // FIX: l'ancien regex exigeait un "}" juste avant "id:", ce qui
+                        // n'arrive quasiment jamais dans la réponse réelle du serveur
+                        // (format habituel: "{Slot: 0b, id: "minecraft:x", Count: 1b}").
+                        // On matche désormais "id:" précédé d'une "{" ou d'une ",",
+                        // ce qui fonctionne aussi bien en NBT classique (<1.20.5)
+                        // qu'avec le nouveau format "components" (>=1.20.5).
+                        if (preg_match('/[{,]\s*id:\s*"?([a-zA-Z0-9_:\.\-]+)"?/i', $itemStr, $kv)) {
                             $item['id'] = trim($kv[1]);
                         }
                         
-                        // Count
-                        if (preg_match('/Count:\s*(\d+)b?/i', $itemStr, $kv)) {
+                        // Count (le flag /i gère "Count:" comme "count:" selon la version)
+                        if (preg_match('/count:\s*(\d+)b?/i', $itemStr, $kv)) {
                             $item['count'] = (int)$kv[1];
                         } else {
                             $item['count'] = 1;
                         }
                         
                         // Slot
-                        if (preg_match('/Slot:\s*(\d+)b?/i', $itemStr, $kv)) {
+                        if (preg_match('/slot:\s*(\d+)b?/i', $itemStr, $kv)) {
                             $item['slot'] = (int)$kv[1];
                         }
 
@@ -491,20 +496,20 @@ class MinecraftPlayerProvider implements GamePlayerService
                         
                         $item = [];
                         
-                        // ID
-                        if (preg_match('/}, id:\s*"?([^",\}\s]+)"?/i', $itemStr, $kv)) {
+                        // ID (voir commentaire équivalent dans la boucle Inventory ci-dessus)
+                        if (preg_match('/[{,]\s*id:\s*"?([a-zA-Z0-9_:\.\-]+)"?/i', $itemStr, $kv)) {
                             $item['id'] = trim($kv[1]);
                         }
                         
                         // Count
-                        if (preg_match('/Count:\s*(\d+)b?/i', $itemStr, $kv)) {
+                        if (preg_match('/count:\s*(\d+)b?/i', $itemStr, $kv)) {
                             $item['count'] = (int)$kv[1];
                         } else {
                             $item['count'] = 1;
                         }
                         
                         // Slot
-                        if (preg_match('/Slot:\s*(\d+)b?/i', $itemStr, $kv)) {
+                        if (preg_match('/slot:\s*(\d+)b?/i', $itemStr, $kv)) {
                             $item['slot'] = (int)$kv[1];
                         }
 
@@ -538,21 +543,25 @@ class MinecraftPlayerProvider implements GamePlayerService
                     }
 
                     $rcon->disconnect();
-                } else {
+            } else {
                      // Connect failed (logged in loop)
                      $details['status'] = 'RCON Error';
-                }
-             }
+            }
+        }
 
         // 4. Fetch JSON Stats
         if ($uuid) {
             try {
-                $levelName = 'world';
+                $levelName = '/world';
                 if (isset($propsContent) && preg_match('/level-name=(.*)/', $propsContent, $lm)) {
-                    $levelName = trim($lm[1]);
+                    $levelName = '/'.trim($lm[1]);
                 }
-                
-                $statsPath = "$levelName/stats/$uuid.json";
+                if($this->dossierExiste($server, $levelName . "/players/stats/")){
+                    $statsPath = "$levelName/players/stats/$uuid.json";
+                }else{
+                    $statsPath = "$levelName/stats/$uuid.json";
+                }
+
                 $statsContent = $fileRepository->getContent($statsPath);
                 $statsJson = json_decode($statsContent, true);
                 
@@ -653,11 +662,11 @@ class MinecraftPlayerProvider implements GamePlayerService
         $fileRepository = app(\App\Repositories\Daemon\DaemonFileRepository::class);
         $fileRepository->setServer($server);
 
-        $levelName = 'world';
+        $levelName = '/world';
         try {
             $props = $fileRepository->getContent('server.properties');
             if (preg_match('/^\s*level-name\s*=\s*(.*)$/m', $props, $matches)) {
-                $levelName = trim($matches[1]);
+                $levelName = '/'.trim($matches[1]);
             }
         } catch (\Exception $e) {}
 
@@ -671,7 +680,12 @@ class MinecraftPlayerProvider implements GamePlayerService
         // We CANNOT directly access disk unless node is local.
         // So we should fetch CONTENT using DaemonFileRepository (which handles Wings API) and pass CONTENT to NbtParser.
         
-        $path = "$levelName/playerdata/$uuid.dat";
+
+        if($this->dossierExiste($server, $levelName . "/players/data/")){
+            $path = "$levelName/players/data/$uuid.dat";
+        }else{
+            $path = "$levelName/playerdata/$uuid.dat";
+        }
         
         try {
             // This pulls the raw binary content strings (API response)

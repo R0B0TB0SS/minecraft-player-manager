@@ -49,21 +49,18 @@ class GamePlayerManagerPlugin implements Plugin, HasPluginSettings
             Toggle::make('rcon_enabled')
                 ->label(__('minecraft-player-manager::messages.settings.rcon_enabled'))
                 ->helperText(__('minecraft-player-manager::messages.settings.rcon_enabled_helper'))
-                ->default(env('MC_PLAYER_MANAGER_RCON_ENABLED', false)),
+                ->default(fn () => config('minecraft-player-manager.rcon_enabled')),
             \Filament\Forms\Components\TextInput::make('nav_sort')
                 ->label(__('minecraft-player-manager::messages.settings.nav_sort'))
                 ->helperText(__('minecraft-player-manager::messages.settings.nav_sort_helper'))
                 ->numeric()
-                ->default(env('MC_PLAYER_MANAGER_NAV_SORT', 2)),
+                ->default(fn () => config('minecraft-player-manager.nav_sort')),
         ];
     }
 
-    public function getSettingsFromData():array
+    public function getSettingsFormData(): array
     {
-        return [
-            'rcon_enabled' => env('MC_PLAYER_MANAGER_RCON_ENABLED', false),
-            'nav_sort' => env('MC_PLAYER_MANAGER_NAV_SORT', 2),
-        ];
+        return config('minecraft-player-manager');;
     }
 
     public function saveSettings(array $data): void
