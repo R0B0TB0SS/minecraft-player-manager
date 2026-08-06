@@ -42,8 +42,36 @@
 @endphp
 
 <div class="inv-wrapper p-4 border border-gray-200 dark:border-white/10 rounded-xl bg-gray-50 dark:bg-white/5 w-fit max-w-full text-gray-900 dark:text-white">
-    
-    <div class="flex flex-col gap-2 shrink-0">
+    {{-- Offhand --}}
+    <div class="inv-offhand flex gap-2 shrink-0">
+            @php 
+                $item = $getItem(-106); 
+                $name = $getName($item);
+            @endphp
+            <div class="inv-slot relative flex items-center justify-center bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md shadow-inner group shrink-0"
+                 title="{{ $name ?? 'Offhand' }}">
+                @if ($item && isset($item['id']))
+                    @php 
+                        $p = explode(':', $item['id']); 
+                        $m = (count($p) > 1) ? $p[0] : 'minecraft'; 
+                        $i = (count($p) > 1) ? $p[1] : $p[0];
+                        $c = $item['count'] ?? 1;
+                    @endphp
+                    <img src="https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/item/{{ $i }}.png"
+                         class="inv-img rendering-pixelated"
+                         onerror="this.onerror=null;this.src='https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/block/{{ $i }}.png'" />
+                    @if ($c > 1)
+                        <span class="inv-count absolute bottom-0 right-0 font-bold px-1 pt-0.5 rounded-tl-sm shadow-sm leading-none bg-gray-200/80 dark:bg-black/60 text-[10px]">
+                            {{ $c }}
+                        </span>
+                    @endif
+                @else
+                   <span class="text-gray-300 dark:text-gray-600 text-xs text-center leading-none opacity-50">O</span>
+                @endif
+            </div>
+    </div>
+    {{-- Inventory --}}
+    <div class="inv-inv border-gray-200 dark:border-white/10 flex flex-col gap-2 shrink-0">
         {{-- Slots internes (Lignes 1-3) --}}
         @for ($row = 0; $row < 3; $row++)
             <div class="flex gap-2 slot-row">
@@ -173,6 +201,12 @@
         padding-left: 1rem;
         border-left-width: 1px;
     }
+
+    .inv-inv{
+        padding-left: 1rem;
+        border-left-width: 1px;
+    }
+
     .offhand-slot {
         margin-top: 0.5rem;
         margin-left: 0;

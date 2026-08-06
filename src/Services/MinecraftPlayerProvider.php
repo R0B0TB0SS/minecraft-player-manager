@@ -238,14 +238,18 @@ class MinecraftPlayerProvider implements GamePlayerService
             'feet'    => null,
             'offhand' => null,
         ];
-
-        // Aide interne pour extraire l'id d'un item depuis un fragment NBT
-        // (ex: '{id: "minecraft:netherite_helmet", count: 1}')
         $extractId = function (string $raw): ?string {
-            if (preg_match('/[{,]\s*id:\s*"?([a-zA-Z0-9_:\.\-]+)"?/i', $raw, $kv)) {
-                return trim($kv[1]);
+            if (preg_match('/[{,]\s*id:\s*"?([a-zA-Z0-9_:\.\-]+)"?/i', $raw, $m)) {
+                return trim($m[1]);
             }
             return null;
+        };
+
+        $extractCount = function (string $raw): int {
+            if (preg_match('/count:\s*(\d+)b?/i', $raw, $m)) {
+                return (int)$m[1];
+            }
+            return 1;
         };
 
         // --- 1. Nouvelle façon : une seule requête sur le tag "equipment" complet ---
@@ -285,10 +289,11 @@ class MinecraftPlayerProvider implements GamePlayerService
                 // rencontrée. Comme "id" est toujours le premier champ du compound
                 // d'un item, il est capturé même si la compound est tronquée par
                 // des sous-structures imbriquées (components, enchantments, etc.)
-                if (preg_match('/\b' . $slot . '\s*:\s*\{(.*?)\}/is', $body, $m)) {
+                if (preg_match('/\b' . $slot . '\s*:\s*\{((?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*)\}/is', $body, $m)) {
                     $id = $extractId($m[1]);
+                    $count = $extractCount($m[1]);
                     if ($id !== null) {
-                        $armor[$slot] = $id;
+                        $armor[$slot] = ['id' => $id, 'count' => $count];
                         $foundAny = true;
                     }
                 }
@@ -607,8 +612,6 @@ class MinecraftPlayerProvider implements GamePlayerService
                     ];
                     foreach ($armorLegacySlotMap as $armorKey => $slotNum) {
                         if (!empty($armorData[$armorKey])) {
-                            // On évite les doublons si l'ancienne méthode (fallback) avait déjà
-                            // rempli ce slot directement depuis Inventory
                             $alreadyPresent = false;
                             foreach ($inventory as $existing) {
                                 if (($existing['slot'] ?? null) === $slotNum) {
@@ -617,11 +620,18 @@ class MinecraftPlayerProvider implements GamePlayerService
                                 }
                             }
                             if (!$alreadyPresent) {
-                                $inventory[] = [
-                                    'id'    => $armorData[$armorKey],
-                                    'count' => 1,
-                                    'slot'  => $slotNum,
-                                ];
+                                $armorItem = $armorData[$armorKey];
+                                // Compatibilité si $armorItem est encore une simple string (ancien format)
+                                $id = is_array($armorItem) ? ($armorItem['id'] ?? null) : $armorItem;
+                                $count = is_array($armorItem) ? ($armorItem['count'] ?? 1) : 1;
+
+                                if ($id) {
+                                    $inventory[] = [
+                                        'id'    => $id,
+                                        'count' => $count,
+                                        'slot'  => $slotNum,
+                                    ];
+                                }
                             }
                         }
                     }
