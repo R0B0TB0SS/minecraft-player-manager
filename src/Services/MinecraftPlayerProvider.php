@@ -171,7 +171,7 @@ class MinecraftPlayerProvider implements GamePlayerService
     {
         $players = [];
         try {
-            $ip = $server->allocation->alias ?? $server->allocation->ip;
+            $ip = $server->allocation->ip;
             $port = $server->allocation->port;
 
              $socket = fsockopen("udp://$ip", $port, $errno, $errstr, 2);
