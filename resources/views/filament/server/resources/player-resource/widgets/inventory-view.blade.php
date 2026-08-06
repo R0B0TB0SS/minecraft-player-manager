@@ -40,7 +40,7 @@
                ucfirst(str_replace('_', ' ', $itemName)); // Nom par défaut propre
     };
 @endphp
-
+<div class="inv-center">
 <div class="inv-wrapper p-4 border border-gray-200 dark:border-white/10 rounded-xl bg-gray-50 dark:bg-white/5 w-fit max-w-full text-gray-900 dark:text-white">
     {{-- Offhand --}}
     <div class="inv-offhand flex gap-2 shrink-0">
@@ -167,8 +167,20 @@
         @endforeach
     </div>
 </div>
+</div>
 
 <style>
+    .inv-offhand {
+        height: 100%;
+        display: flex;
+        align-content: center;
+        flex-wrap: wrap;
+    }
+    .inv-center{
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
     .inv-wrapper {
         display: flex;
         flex-direction: row;
