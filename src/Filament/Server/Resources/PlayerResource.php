@@ -26,7 +26,7 @@ class PlayerResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('minecraft-player-manager::messages.navigation_label');
+        return __('rbs-minecraft-player-manager::messages.navigation_label');
     }
 
     public static function canAccess(): bool
@@ -60,7 +60,7 @@ class PlayerResource extends Resource
 
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
-                    ->label(__('minecraft-player-manager::messages.columns.name')),
+                    ->label(__('rbs-minecraft-player-manager::messages.columns.name')),
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
@@ -76,27 +76,27 @@ class PlayerResource extends Resource
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'Online' => __('minecraft-player-manager::messages.columns.online'),
-                        'Banned' => __('minecraft-player-manager::messages.filters.banned'),
-                        'Offline' => __('minecraft-player-manager::messages.columns.offline'),
+                        'Online' => __('rbs-minecraft-player-manager::messages.columns.online'),
+                        'Banned' => __('rbs-minecraft-player-manager::messages.filters.banned'),
+                        'Offline' => __('rbs-minecraft-player-manager::messages.columns.offline'),
                         'ERR' => 'RCON Debug',
                         default => $state,
                     })
-                    ->label(__('minecraft-player-manager::messages.columns.status')),
+                    ->label(__('rbs-minecraft-player-manager::messages.columns.status')),
 
                 Tables\Columns\IconColumn::make('is_op')
                      ->boolean()
-                     ->label(__('minecraft-player-manager::messages.columns.op')),
+                     ->label(__('rbs-minecraft-player-manager::messages.columns.op')),
             ])
             ->actions([
                  Action::make('view_details')
-                    ->label(__('minecraft-player-manager::messages.actions.view'))
+                    ->label(__('rbs-minecraft-player-manager::messages.actions.view'))
                     ->icon('heroicon-m-eye')
                     ->color('gray')
                     ->url(fn ($record) => PlayerResource::getUrl('view', ['record' => $record->id])),
                     
                  Action::make('op')
-                    ->label(fn ($record) => $record->is_op ? __('minecraft-player-manager::messages.actions.op.label_deop') : __('minecraft-player-manager::messages.actions.op.label_op'))
+                    ->label(fn ($record) => $record->is_op ? __('rbs-minecraft-player-manager::messages.actions.op.label_deop') : __('rbs-minecraft-player-manager::messages.actions.op.label_op'))
                     ->color(fn ($record) => $record->is_op ? 'warning' : 'primary')
                     ->icon(fn ($record) => $record->is_op ? 'heroicon-m-shield-exclamation' : 'heroicon-m-shield-check')
                     ->button()
@@ -112,7 +112,7 @@ class PlayerResource extends Resource
                         $provider->sendRconCommand($server->uuid, $command);
                         
                         \Filament\Notifications\Notification::make()
-                            ->title($record->is_op ? __('minecraft-player-manager::messages.actions.op.notify_deop') : __('minecraft-player-manager::messages.actions.op.notify_op'))
+                            ->title($record->is_op ? __('rbs-minecraft-player-manager::messages.actions.op.notify_deop') : __('rbs-minecraft-player-manager::messages.actions.op.notify_op'))
                             ->success()
                             ->send();
                     })
@@ -129,19 +129,19 @@ class PlayerResource extends Resource
 
                         $provider = app(MinecraftPlayerProvider::class);
                         $provider->sendRconCommand($server->uuid, "kick {$record->name}");
-                        \Filament\Notifications\Notification::make()->title(__('minecraft-player-manager::messages.actions.kick.notify'))->success()->send();
+                        \Filament\Notifications\Notification::make()->title(__('rbs-minecraft-player-manager::messages.actions.kick.notify'))->success()->send();
                     })
                     ->requiresConfirmation(),
 
                 Action::make('ban')
-                    ->label(fn ($record) => $record->is_banned ? __('minecraft-player-manager::messages.actions.ban.label_unban') : __('minecraft-player-manager::messages.actions.ban.label_ban'))
+                    ->label(fn ($record) => $record->is_banned ? __('rbs-minecraft-player-manager::messages.actions.ban.label_unban') : __('rbs-minecraft-player-manager::messages.actions.ban.label_ban'))
                     ->color(fn ($record) => $record->is_banned ? 'success' : 'danger')
                     ->icon(fn ($record) => $record->is_banned ? 'heroicon-m-check-circle' : 'heroicon-m-no-symbol')
                     ->button()
                     ->form(fn ($record) => $record->is_banned ? [] : [
                         \Filament\Forms\Components\TextInput::make('reason')
-                            ->label(__('minecraft-player-manager::messages.actions.ban.reason'))
-                            ->default(__('minecraft-player-manager::messages.actions.ban.default_reason')),
+                            ->label(__('rbs-minecraft-player-manager::messages.actions.ban.reason'))
+                            ->default(__('rbs-minecraft-player-manager::messages.actions.ban.default_reason')),
                     ])
                     ->action(function (array $data, $record) {
                         if (!$record) return;
@@ -152,10 +152,10 @@ class PlayerResource extends Resource
                         
                         if ($record->is_banned) {
                             $provider->pardon($server->uuid, $record->name);
-                            \Filament\Notifications\Notification::make()->title(__('minecraft-player-manager::messages.actions.ban.notify_unban'))->success()->send();
+                            \Filament\Notifications\Notification::make()->title(__('rbs-minecraft-player-manager::messages.actions.ban.notify_unban'))->success()->send();
                         } else {
                             $provider->ban($server->uuid, $record->name, $data['reason'] ?? null);
-                            \Filament\Notifications\Notification::make()->title(__('minecraft-player-manager::messages.actions.ban.notify_ban'))->success()->send();
+                            \Filament\Notifications\Notification::make()->title(__('rbs-minecraft-player-manager::messages.actions.ban.notify_ban'))->success()->send();
                         }
                     })
                     ->requiresConfirmation(),
@@ -167,83 +167,83 @@ class PlayerResource extends Resource
         return $schema
             ->schema([
                 // 1. General Info
-                \Filament\Schemas\Components\Section::make(__('minecraft-player-manager::messages.sections.identity'))
+                \Filament\Schemas\Components\Section::make(__('rbs-minecraft-player-manager::messages.sections.identity'))
                     ->schema([
-                        \Filament\Forms\Components\TextInput::make('name')->label(__('minecraft-player-manager::messages.fields.username'))->disabled(),
+                        \Filament\Forms\Components\TextInput::make('name')->label(__('rbs-minecraft-player-manager::messages.fields.username'))->disabled(),
                         \Filament\Forms\Components\TextInput::make('status')
-                            ->label(__('minecraft-player-manager::messages.fields.current_status'))
+                            ->label(__('rbs-minecraft-player-manager::messages.fields.current_status'))
                             ->disabled()
                             ->formatStateUsing(fn ($state) => match (strtolower($state ?? '')) {
-                                'online' => __('minecraft-player-manager::messages.values.online'),
-                                'offline' => __('minecraft-player-manager::messages.values.offline'),
+                                'online' => __('rbs-minecraft-player-manager::messages.values.online'),
+                                'offline' => __('rbs-minecraft-player-manager::messages.values.offline'),
                                 default => $state,
                             }),
-                        \Filament\Forms\Components\TextInput::make('uuid')->label(__('minecraft-player-manager::messages.fields.uuid'))->disabled(),
+                        \Filament\Forms\Components\TextInput::make('uuid')->label(__('rbs-minecraft-player-manager::messages.fields.uuid'))->disabled(),
                     ])->columns(3),
 
                 // 2. Historical Stats (Grid)
-                \Filament\Schemas\Components\Section::make(__('minecraft-player-manager::messages.sections.statistics'))
-                    ->description(__('minecraft-player-manager::messages.sections.statistics_desc'))
+                \Filament\Schemas\Components\Section::make(__('rbs-minecraft-player-manager::messages.sections.statistics'))
+                    ->description(__('rbs-minecraft-player-manager::messages.sections.statistics_desc'))
                     ->schema([
-                        \Filament\Forms\Components\TextInput::make('play_time')->label(__('minecraft-player-manager::messages.fields.play_time'))->disabled(),
-                        \Filament\Forms\Components\TextInput::make('walk_distance')->label(__('minecraft-player-manager::messages.fields.distance_walked'))->disabled(),
-                        \Filament\Forms\Components\TextInput::make('mobs_killed')->label(__('minecraft-player-manager::messages.fields.mobs_killed'))->disabled(),
-                        \Filament\Forms\Components\TextInput::make('deaths')->label(__('minecraft-player-manager::messages.fields.deaths'))->disabled(),
+                        \Filament\Forms\Components\TextInput::make('play_time')->label(__('rbs-minecraft-player-manager::messages.fields.play_time'))->disabled(),
+                        \Filament\Forms\Components\TextInput::make('walk_distance')->label(__('rbs-minecraft-player-manager::messages.fields.distance_walked'))->disabled(),
+                        \Filament\Forms\Components\TextInput::make('mobs_killed')->label(__('rbs-minecraft-player-manager::messages.fields.mobs_killed'))->disabled(),
+                        \Filament\Forms\Components\TextInput::make('deaths')->label(__('rbs-minecraft-player-manager::messages.fields.deaths'))->disabled(),
                     ])->columns(4),
 
-                \Filament\Schemas\Components\Section::make(__('minecraft-player-manager::messages.sections.live_status'))
+                \Filament\Schemas\Components\Section::make(__('rbs-minecraft-player-manager::messages.sections.live_status'))
                     ->description(fn ($record) => match($record?->raw_stats) {
-                        'Offline (Data from Save File)' => __('minecraft-player-manager::messages.sections.offline_status_desc'),
-                        'RconDisabled' => __('minecraft-player-manager::messages.sections.rcon_disabled_status_desc'),
-                        default => __('minecraft-player-manager::messages.sections.live_status_desc'),
+                        'Offline (Data from Save File)' => __('rbs-minecraft-player-manager::messages.sections.offline_status_desc'),
+                        'RconDisabled' => __('rbs-minecraft-player-manager::messages.sections.rcon_disabled_status_desc'),
+                        default => __('rbs-minecraft-player-manager::messages.sections.live_status_desc'),
                     })
                     ->schema([
 
                         \Filament\Forms\Components\ViewField::make('visual_stats')
-                            ->label(__('minecraft-player-manager::messages.fields.status'))
-                            ->view('minecraft-player-manager::filament.server.resources.player-resource.widgets.visual-stats-view')
+                            ->label(__('rbs-minecraft-player-manager::messages.fields.status'))
+                            ->view('rbs-minecraft-player-manager::filament.server.resources.player-resource.widgets.visual-stats-view')
                             ->columnSpanFull(),
                         \Filament\Forms\Components\TextInput::make('level')
-                            ->label(__('minecraft-player-manager::messages.fields.xp_level'))
+                            ->label(__('rbs-minecraft-player-manager::messages.fields.xp_level'))
                             ->disabled()
                             ->columnSpan(2),
                         \Filament\Forms\Components\TextInput::make('gamemode')
-                            ->label(__('minecraft-player-manager::messages.fields.gamemode'))
+                            ->label(__('rbs-minecraft-player-manager::messages.fields.gamemode'))
                             ->disabled()
                             ->formatStateUsing(fn ($state) => match (strtolower($state ?? '')) {
-                                'survival' => __('minecraft-player-manager::messages.values.survival'),
-                                'creative' => __('minecraft-player-manager::messages.values.creative'),
-                                'adventure' => __('minecraft-player-manager::messages.values.adventure'),
-                                'spectator' => __('minecraft-player-manager::messages.values.spectator'),
+                                'survival' => __('rbs-minecraft-player-manager::messages.values.survival'),
+                                'creative' => __('rbs-minecraft-player-manager::messages.values.creative'),
+                                'adventure' => __('rbs-minecraft-player-manager::messages.values.adventure'),
+                                'spectator' => __('rbs-minecraft-player-manager::messages.values.spectator'),
                                 default => $state,
                             })
                             ->columnSpan(2),
                     ])->columns(4)->collapsible(),
 
                 // Inventory Section
-                \Filament\Schemas\Components\Section::make(__('minecraft-player-manager::messages.sections.inventory'))
+                \Filament\Schemas\Components\Section::make(__('rbs-minecraft-player-manager::messages.sections.inventory'))
                     ->schema([
                          \Filament\Forms\Components\ViewField::make('inventory_data')
-                            ->label(__('minecraft-player-manager::messages.fields.visual_inventory'))
-                            ->view('minecraft-player-manager::filament.server.resources.player-resource.widgets.inventory-view')
+                            ->label(__('rbs-minecraft-player-manager::messages.fields.visual_inventory'))
+                            ->view('rbs-minecraft-player-manager::filament.server.resources.player-resource.widgets.inventory-view')
                             ->columnSpanFull(),
                     ])->collapsible(),
                     
                 // Ender Chest Section
-                \Filament\Schemas\Components\Section::make(__('minecraft-player-manager::messages.sections.enderchest'))
+                \Filament\Schemas\Components\Section::make(__('rbs-minecraft-player-manager::messages.sections.enderchest'))
                     ->schema([
                          \Filament\Forms\Components\ViewField::make('enderchest_data')
-                            ->label(__('minecraft-player-manager::messages.fields.visual_enderchest'))
-                            ->view('minecraft-player-manager::filament.server.resources.player-resource.widgets.enderchest-view')
+                            ->label(__('rbs-minecraft-player-manager::messages.fields.visual_enderchest'))
+                            ->view('rbs-minecraft-player-manager::filament.server.resources.player-resource.widgets.enderchest-view')
                             ->columnSpanFull(),
                     ])->collapsible(),
 
                 // Management Section (Actions)
-                 \Filament\Schemas\Components\Section::make(__('minecraft-player-manager::messages.sections.management'))
-                    ->description(__('minecraft-player-manager::messages.sections.management_desc'))
+                 \Filament\Schemas\Components\Section::make(__('rbs-minecraft-player-manager::messages.sections.management'))
+                    ->description(__('rbs-minecraft-player-manager::messages.sections.management_desc'))
                     ->schema([
                         \Filament\Forms\Components\ViewField::make('management_actions')
-                            ->view('minecraft-player-manager::filament.server.resources.player-resource.widgets.management-actions')
+                            ->view('rbs-minecraft-player-manager::filament.server.resources.player-resource.widgets.management-actions')
                             ->columnSpanFull(),
                     ])->collapsible(),
                 

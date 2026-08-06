@@ -33,9 +33,9 @@ class PlayerCountWidget extends BaseWidget
         $levelName = $properties['level_name'] ?? 'world';
 
         return [
-            SmallStatBlock::make(__('minecraft-player-manager::messages.widget.online_players'), "{$onlineCount} / {$maxPlayers}"), 
-            SmallStatBlock::make(__('minecraft-player-manager::messages.widget.motd'), $motd),
-            SmallStatBlock::make(__('minecraft-player-manager::messages.widget.map'), $levelName),
+            SmallStatBlock::make(__('rbs-minecraft-player-manager::messages.widget.online_players'), "{$onlineCount} / {$maxPlayers}"), 
+            SmallStatBlock::make(__('rbs-minecraft-player-manager::messages.widget.motd'), $motd),
+            SmallStatBlock::make(__('rbs-minecraft-player-manager::messages.widget.map'), $levelName),
         ];
     }
 }

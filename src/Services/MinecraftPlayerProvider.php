@@ -436,7 +436,7 @@ class MinecraftPlayerProvider implements GamePlayerService
 
         
         // Check setting
-        $rconEnabled = config('minecraft-player-manager.rcon_enabled');
+        $rconEnabled = config('rbs-minecraft-player-manager.rcon_enabled');
 
         if (!$rconEnabled) {
              // Try to get status via Query even if RCON is disabled
@@ -720,7 +720,7 @@ class MinecraftPlayerProvider implements GamePlayerService
                 if ($statsJson && isset($statsJson['stats'])) {
                     $s = $statsJson['stats'];
                     $ticks = $s['minecraft:custom']['minecraft:play_time'] ?? 0;
-                    $details['play_time'] = floor($ticks / 20 / 60) . ' ' . __('minecraft-player-manager::messages.units.mins');
+                    $details['play_time'] = floor($ticks / 20 / 60) . ' ' . __('rbs-minecraft-player-manager::messages.units.mins');
                     $details['mobs_killed'] = $s['minecraft:custom']['minecraft:mob_kills'] ?? 0;
                     $details['deaths'] = $s['minecraft:custom']['minecraft:deaths'] ?? 0;
                     $cm = $s['minecraft:custom']['minecraft:walk_one_cm'] ?? 0;

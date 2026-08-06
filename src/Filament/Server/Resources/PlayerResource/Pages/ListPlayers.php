@@ -16,7 +16,7 @@ class ListPlayers extends ListRecords
 
     public function getTitle(): string|\Illuminate\Contracts\Support\Htmlable
     {
-        return __('minecraft-player-manager::messages.pages.list');
+        return __('rbs-minecraft-player-manager::messages.pages.list');
     }
 
     protected ?array $cachedPlayers = null;
@@ -42,22 +42,22 @@ class ListPlayers extends ListRecords
 
         return [
             'all' => \Filament\Schemas\Components\Tabs\Tab::make()
-                ->label(__('minecraft-player-manager::messages.filters.all'))
+                ->label(__('rbs-minecraft-player-manager::messages.filters.all'))
                 ->badge($players->count()),
             'online' => \Filament\Schemas\Components\Tabs\Tab::make()
-                ->label(__('minecraft-player-manager::messages.filters.online'))
+                ->label(__('rbs-minecraft-player-manager::messages.filters.online'))
                 ->badge($players->where('online', true)->count())
                 ->badgeColor('success'),
             'offline' => \Filament\Schemas\Components\Tabs\Tab::make()
-                ->label(__('minecraft-player-manager::messages.filters.offline'))
+                ->label(__('rbs-minecraft-player-manager::messages.filters.offline'))
                 ->badge($players->where('online', false)->count())
                 ->badgeColor('gray'),
             'op' => \Filament\Schemas\Components\Tabs\Tab::make()
-                ->label(__('minecraft-player-manager::messages.filters.op'))
+                ->label(__('rbs-minecraft-player-manager::messages.filters.op'))
                 ->badge($players->where('is_op', true)->count())
                 ->badgeColor('warning'),
             'banned' => \Filament\Schemas\Components\Tabs\Tab::make()
-                ->label(__('minecraft-player-manager::messages.filters.banned'))
+                ->label(__('rbs-minecraft-player-manager::messages.filters.banned'))
                 ->badge($players->where('is_banned', true)->count())
                 ->badgeColor('danger'),
         ];

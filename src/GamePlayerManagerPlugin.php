@@ -31,8 +31,8 @@ class GamePlayerManagerPlugin implements Plugin, HasPluginSettings
     public function boot(Panel $panel): void
     {
         // Register Views
-        \Illuminate\Support\Facades\View::addNamespace('minecraft-player-manager', plugin_path('minecraft-player-manager', 'resources/views'));
-        \Illuminate\Support\Facades\Lang::addNamespace('minecraft-player-manager', __DIR__ . '/../resources/lang');
+        \Illuminate\Support\Facades\View::addNamespace('rbs-minecraft-player-manager', plugin_path('minecraft-player-manager', 'resources/views'));
+        \Illuminate\Support\Facades\Lang::addNamespace('rbs-minecraft-player-manager', __DIR__ . '/../resources/lang');
 
         // Only register widgets for the Server panel
         if ($panel->getId() === 'server') {
@@ -47,20 +47,20 @@ class GamePlayerManagerPlugin implements Plugin, HasPluginSettings
     {
         return [
             Toggle::make('rcon_enabled')
-                ->label(__('minecraft-player-manager::messages.settings.rcon_enabled'))
-                ->helperText(__('minecraft-player-manager::messages.settings.rcon_enabled_helper'))
-                ->default(fn () => config('minecraft-player-manager.rcon_enabled')),
+                ->label(__('rbs-minecraft-player-manager::messages.settings.rcon_enabled'))
+                ->helperText(__('rbs-minecraft-player-manager::messages.settings.rcon_enabled_helper'))
+                ->default(fn () => config('rbs-minecraft-player-manager.rcon_enabled')),
             \Filament\Forms\Components\TextInput::make('nav_sort')
-                ->label(__('minecraft-player-manager::messages.settings.nav_sort'))
-                ->helperText(__('minecraft-player-manager::messages.settings.nav_sort_helper'))
+                ->label(__('rbs-minecraft-player-manager::messages.settings.nav_sort'))
+                ->helperText(__('rbs-minecraft-player-manager::messages.settings.nav_sort_helper'))
                 ->numeric()
-                ->default(fn () => config('minecraft-player-manager.nav_sort')),
+                ->default(fn () => config('rbs-minecraft-player-manager.nav_sort')),
         ];
     }
 
     public function getSettingsFormData(): array
     {
-        return config('minecraft-player-manager');;
+        return config('rbs-minecraft-player-manager');;
     }
 
     public function saveSettings(array $data): void
@@ -71,7 +71,7 @@ class GamePlayerManagerPlugin implements Plugin, HasPluginSettings
         ]);
 
         Notification::make()
-            ->title(__('minecraft-player-manager::messages.settings.saved'))
+            ->title(__('rbs-minecraft-player-manager::messages.settings.saved'))
             ->success()
             ->send();
     }

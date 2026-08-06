@@ -31,8 +31,8 @@
 
 <div class="grid grid-cols-[auto_1fr_auto] gap-x-3 gap-y-2 p-2 items-center">
     {{-- Health Row --}}
-    <span class="text-sm font-bold text-gray-500 w-16 text-left select-none">{{ __('minecraft-player-manager::messages.stats.health') }}</span>
-    <div class="flex gap-1" title="{{ __('minecraft-player-manager::messages.stats.health') }}: {{ $health }}/20">
+    <span class="text-sm font-bold text-gray-500 w-16 text-left select-none">{{ __('rbs-minecraft-player-manager::messages.stats.health') }}</span>
+    <div class="flex gap-1" title="{{ __('rbs-minecraft-player-manager::messages.stats.health') }}: {{ $health }}/20">
         @for ($i = 1; $i <= 10; $i++)
             @php
                 $threshold = $i * 2;
@@ -50,8 +50,8 @@
     <span class="text-sm text-gray-400 font-mono">({{ $health }})</span>
 
     {{-- Food Row --}}
-    <span class="text-sm font-bold text-gray-500 w-16 text-left select-none">{{ __('minecraft-player-manager::messages.stats.food') }}</span>
-    <div class="flex gap-1" title="{{ __('minecraft-player-manager::messages.stats.food') }}: {{ $food }}/20">
+    <span class="text-sm font-bold text-gray-500 w-16 text-left select-none">{{ __('rbs-minecraft-player-manager::messages.stats.food') }}</span>
+    <div class="flex gap-1" title="{{ __('rbs-minecraft-player-manager::messages.stats.food') }}: {{ $food }}/20">
              @for ($i = 1; $i <= 10; $i++)
                 @php
                     $threshold = $i * 2;

@@ -5,7 +5,7 @@
     "category": "plugin",
     "url": "https://github.com/R0B0TB0SS/minecraft-player-manager",
     "update_url": null,
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "R0B0TB0SS",
     "namespace": "R0B0TB0SS\\GamePlayerManager",
     "class": "GamePlayerManagerPlugin",
