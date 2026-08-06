@@ -16,7 +16,7 @@ class GamePlayerManagerPlugin implements Plugin, HasPluginSettings
 
     public function getId(): string
     {
-        return 'minecraft-player-manager';
+        return 'rbs-minecraft-player-manager';
     }
 
     public function register(Panel $panel): void
