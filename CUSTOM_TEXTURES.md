@@ -21,6 +21,7 @@ The web server must therefore faithfully reproduce this hierarchy so that HTTP r
 ---
 
 ## 2. Folder Structure Diagram
+<code>
 webserver/
 └── assets/
     ├── minecraft/
@@ -28,7 +29,7 @@ webserver/
     │   │   ├── block/
     │   │   │   ├── stone.png
     │   │   │   ├── oak_log.png
-    │   │   │   └── chest.png          <-- Tile Entity (block with logic)
+    │   │   │   └── chest.png          <-- Tile Entity (bloc avec logique)
     │   │   │
     │   │   ├── item/
     │   │   │   ├── diamond_sword.png
@@ -46,7 +47,7 @@ webserver/
         .
         .
         .
-
+</code>
 ---
 
 ## 3. Important Rule: Tile Entities
@@ -98,6 +99,7 @@ Le serveur web doit donc reproduire fidèlement cette hiérarchie afin que les r
 ---
 
 ## 2. Schéma de l'arborescence
+<code>
 webserver/
 └── assets/
     ├── minecraft/
@@ -123,7 +125,7 @@ webserver/
         .
         .
         .
-
+</code>
 ---
 
 ## 3. Règle importante : les Tile Entities
