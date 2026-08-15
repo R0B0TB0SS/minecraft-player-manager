@@ -6,6 +6,9 @@
 **Minecraft Player Manager** is a plugin for [Pelican Panel](https://pelican.dev/) that allows you to manage players on your Minecraft servers directly from the panel.
 View real-time status with RCON, check inventories, and perform administrative actions like Kick, Ban, and OP/Deop without entering the game.
 
+### Issue 
+If you have an issue or a question please send it on the [project's github repo](https://github.com/R0B0TB0SS/ROBOSS-Games-Launcher/issues) 
+
 ### Features
 *   **Real-time Player List**: View all known players (Online, Offline, Banned, OP).
 *   **Visual Stats**:
@@ -47,3 +50,5 @@ View real-time status with RCON, check inventories, and perform administrative a
 1. RCON Activation.
 2. Navigation Order
 3. Custom Textures URL
+
+This plugin is a fork from [Shastye1/minecraft-player-manager](https://github.com/Shastye1/minecraft-player-manager/) project for new pelican/minecraft version
