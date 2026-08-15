@@ -42,3 +42,8 @@ View real-time status with RCON, check inventories, and perform administrative a
 1.  Navigate to the **Server View** in Pelican Panel.
 2.  Click on the **Player** tab in the navigation menu.
 3.  You will see a list of players. Click "View" to see real-time details and inventory.
+
+### Settings
+1. RCON Activation.
+2. Navigation Order
+3. Custom Textures URL
