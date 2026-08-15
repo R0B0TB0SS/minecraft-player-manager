@@ -5,7 +5,7 @@
     "category": "plugin",
     "url": "https://hub.pelican.dev/plugins/rbs-minecraft-player-manager",
     "update_url": "https://hub.pelican.dev/plugins/rbs-minecraft-player-manager/update.json",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "author": "R0B0TB0SS",
     "namespace": "R0B0TB0SS\\GamePlayerManager",
     "class": "GamePlayerManagerPlugin",
