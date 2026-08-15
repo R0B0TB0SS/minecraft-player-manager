@@ -55,6 +55,11 @@ class GamePlayerManagerPlugin implements Plugin, HasPluginSettings
                 ->helperText(__('rbs-minecraft-player-manager::messages.settings.nav_sort_helper'))
                 ->numeric()
                 ->default(fn () => config('rbs-minecraft-player-manager.nav_sort')),
+            \Filament\Forms\Components\TextInput::make('custom_files')
+                ->label(__('rbs-minecraft-player-manager::messages.settings.custom_files'))
+                ->helperText(__('rbs-minecraft-player-manager::messages.settings.custom_files_helper'))
+                ->placeholder(__('rbs-minecraft-player-manager::messages.settings.custom_files_placeholder'))
+                ->default(fn () => config('rbs-minecraft-player-manager.custom_files')),
         ];
     }
 
@@ -68,6 +73,7 @@ class GamePlayerManagerPlugin implements Plugin, HasPluginSettings
         $this->writeToEnvironment([
             'MC_PLAYER_MANAGER_RCON_ENABLED' => $data['rcon_enabled'],
             'MC_PLAYER_MANAGER_NAV_SORT' => $data['nav_sort'],
+            'MC_PLAYER_MANAGER_CUSTOM_FILES' => $data['custom_files'],
         ]);
 
         Notification::make()

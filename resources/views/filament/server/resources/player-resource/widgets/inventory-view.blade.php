@@ -1,4 +1,11 @@
 @php
+
+    if(env('MC_PLAYER_MANAGER_CUSTOM_FILES') != '') {
+        $textureurl= env('MC_PLAYER_MANAGER_CUSTOM_FILES');
+    }else{
+        $textureurl= "https://cdn.robotboss.org/modded_textures/";
+    }
+
     $inventory = $getState() ?? [];
 
     // Cache statique pour les performances
@@ -55,9 +62,9 @@
                         $i = (count($p) > 1) ? $p[1] : $p[0];
                         $c = $item['count'] ?? 1;
                     @endphp
-                    <img src="https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/item/{{ $i }}.png"
+                    <img src="{{ $textureurl }}assets/{{ $m }}/textures/item/{{ $i }}.png"
                          class="inv-img rendering-pixelated"
-                         onerror="this.onerror=null;this.src='https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/block/{{ $i }}.png'" />
+                         onerror="this.onerror=null;this.src='{{ $textureurl }}assets/{{ $m }}/textures/block/{{ $i }}.png'" />
                     @if ($c > 1)
                         <span class="inv-count absolute bottom-0 right-0 font-bold px-1 rounded-tl-sm shadow-sm leading-none bg-gray-200/80 dark:bg-black/60">
                             {{ $c }}
@@ -89,9 +96,9 @@
                                     $i = (count($p) > 1) ? $p[1] : $p[0];
                                     $it = explode('waxed_', $i)[1] ?? $i;
                                 @endphp
-                                <img src="https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/item/{{ $it }}.png" 
+                                <img src="{{ $textureurl }}assets/{{ $m }}/textures/item/{{ $it }}.png" 
                                      class="inv-img rendering-pixelated"
-                                     onerror="this.onerror=null;this.src='https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/block/{{ $it }}.png'" />
+                                     onerror="this.onerror=null;this.src='{{ $textureurl }}assets/{{ $m }}/textures/block/{{ $it }}.png'" />
 
                                 @if (($item['count'] ?? 1) > 1)
                                     <span class="inv-count absolute bottom-0 right-0 font-bold px-1 rounded-tl-sm shadow-sm leading-none bg-gray-200/80 dark:bg-black/60">
@@ -124,9 +131,9 @@
                                 $i = (count($p) > 1) ? $p[1] : $p[0];
                                 $it = explode('waxed_', $i)[1] ?? $i;
                             @endphp
-                            <img src="https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/item/{{ $it }}.png" 
+                            <img src="{{ $textureurl }}assets/{{ $m }}/textures/item/{{ $it }}.png" 
                                  class="inv-img rendering-pixelated"
-                                 onerror="this.onerror=null;this.src='https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/block/{{ $it }}.png'" />
+                                 onerror="this.onerror=null;this.src='{{ $textureurl }}assets/{{ $m }}/textures/block/{{ $it }}.png'" />
                             @if (($item['count'] ?? 1) > 1)
                                 <span class="inv-count absolute bottom-0 right-0 font-bold px-1 rounded-tl-sm shadow-sm leading-none bg-gray-200/80 dark:bg-black/60">
                                     {{ $item['count'] }}
@@ -159,9 +166,9 @@
                             $i = (count($p) > 1) ? $p[1] : $p[0];
                             $it = explode('waxed_', $i)[1] ?? $i;
                         @endphp
-                        <img src="https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/item/{{ $it }}.png"
+                        <img src="{{ $textureurl }}assets/{{ $m }}/textures/item/{{ $it }}.png"
                              class="inv-img rendering-pixelated"
-                             onerror="this.onerror=null;this.src='https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/block/{{ $it }}.png'" />
+                             onerror="this.onerror=null;this.src='{{ $textureurl }}assets/{{ $m }}/textures/block/{{ $it }}.png'" />
                     @else
                        <span class="text-gray-300 dark:text-gray-600 text-xs text-center leading-none opacity-50">{{ strtoupper(substr($placeholder, 0, 1)) }}</span>
                     @endif

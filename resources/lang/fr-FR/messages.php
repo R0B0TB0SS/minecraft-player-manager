@@ -125,5 +125,8 @@ return [
         'nav_sort' => 'Ordre de navigation',
         'nav_sort_helper' => 'Définit l’ordre d’affichage dans le menu latéral. Les nombres les plus petits apparaissent en premier. (Par défaut : 2)',
         'saved' => 'Paramètres enregistrés avec succès.',
+        'custom_files' => 'URL des textures personnalisés',
+        'custom_files_helper' => 'Si vous voulez un pack de ressources personnalisé, spécifiez l’URL ici. pour plus d\'informations https://github.com/R0B0TB0SS/minecraft-player-manager/blob/main/CUSTOM_TEXTURES.md',
+        'custom_files_placeholder' => 'laissez vide pour utiliser le CDN par défaut',
     ],
 ];

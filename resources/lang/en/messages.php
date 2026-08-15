@@ -120,5 +120,8 @@ return [
         'nav_sort' => 'Navigation Order',
         'nav_sort_helper' => 'Sort order in the side menu. Lower numbers appear higher. (Default: 2)',
         'saved' => 'Settings saved successfully.',
+        'custom_files' => 'Custom Textures URL',
+        'custom_files_helper' => 'If you want a custom resource pack, specify the URL here. For more information, see https://github.com/R0B0TB0SS/minecraft-player-manager/blob/main/CUSTOM_TEXTURES.md',
+        'custom_files_placeholder' => 'Leave blank to use the default CDN',
     ],
 ];

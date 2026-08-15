@@ -1,4 +1,11 @@
 @php
+
+    if(env('MC_PLAYER_MANAGER_CUSTOM_FILES') != '') {
+        $textureurl= env('MC_PLAYER_MANAGER_CUSTOM_FILES');
+    }else{
+        $textureurl= "https://cdn.robotboss.org/modded_textures/";
+    }
+
     $inventory = $getState() ?? [];
 
     // Cache statique pour les performances
@@ -56,9 +63,9 @@
                                     $m = (count($p) > 1) ? $p[0] : 'minecraft'; 
                                     $i = (count($p) > 1) ? $p[1] : $p[0];
                                 @endphp
-                                <img src="https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/item/{{ $i }}.png" 
+                                <img src="{{ $textureurl }}assets/{{ $m }}/textures/item/{{ $i }}.png" 
                                      class="ec-img rendering-pixelated select-none"
-                                     onerror="this.onerror=null;this.src='https://cdn.robotboss.org/modded_textures/assets/{{ $m }}/textures/block/{{ $i }}.png'" />
+                                     onerror="this.onerror=null;this.src='{{ $textureurl }}assets/{{ $m }}/textures/block/{{ $i }}.png'" />
 
                                 @if (($item['count'] ?? 1) > 1)
                                     <span class="ec-count absolute bottom-0 right-0 font-bold rounded-tl-sm shadow-sm leading-none">
