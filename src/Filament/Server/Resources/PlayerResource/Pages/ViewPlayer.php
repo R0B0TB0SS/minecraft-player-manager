@@ -84,6 +84,7 @@ class ViewPlayer extends ViewRecord
                 \Filament\Notifications\Notification::make()->title(__('rbs-minecraft-player-manager::messages.actions.clear_inventory.notify'))->success()->send();
                 
                 $this->refreshPlayer();
+                back();
             });
     }
 

@@ -28,9 +28,9 @@ class OpPlayersTableWidget extends BaseWidget
                     ->state(function ($record) {
                         $name = $record['name'];
                         if (!preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
-                            return "https://minotar.net/avatar/MHF_Steve/32";
+                            return "https://mc-heads.net/head/MHF_Steve/32";
                         }
-                        return "https://minotar.net/avatar/{$name}/32";
+                        return "https://mc-heads.net/head/{$name}/32";
                     })
                     ->circular(),
                 Tables\Columns\TextColumn::make('name')->label('Name'),
