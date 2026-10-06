@@ -3,7 +3,7 @@
     if(env('MC_PLAYER_MANAGER_CUSTOM_FILES') != '') {
         $textureurl= env('MC_PLAYER_MANAGER_CUSTOM_FILES');
     }else{
-        $textureurl= "https://cdn.robotboss.org/modded_textures/";
+        $textureurl= "https://cdn.robotboss.be/modded_textures/";
     }
 
     $inventory = $getState() ?? [];
@@ -28,18 +28,26 @@
         $itemName = (count($parts) > 1) ? $parts[1] : $parts[0];
 
         if (!isset($langCache[$modid])) {
-            $url = "https://cdn.robotboss.org/modded_textures/assets/$modid/lang/en_us.json";
+            $url = "https://cdn.robotboss.be/modded_textures/assets/$modid/lang/en_us.json";
             $jsonRaw = @file_get_contents($url);
-            $langCache[$modid] = $jsonRaw ? json_decode($jsonRaw, true) : [];
+            $decoded = $jsonRaw ? json_decode($jsonRaw, true) : [];
+            $langCache[$modid] = is_array($decoded) ? $decoded : [];
         }
 
         $d = $langCache[$modid];
 
-        return $d["item.$modid.$itemName"] ?? 
-               $d["block.$modid.$itemName"] ?? 
-               $d["item.minecraft.$itemName"] ?? 
-               $d["block.minecraft.$itemName"] ?? 
-               ucfirst(str_replace('_', ' ', $itemName));
+        $result = $d["item.$modid.$itemName"] ?? 
+                   $d["block.$modid.$itemName"] ?? 
+                   $d["item.minecraft.$itemName"] ?? 
+                   $d["block.minecraft.$itemName"] ?? 
+                   ucfirst(str_replace('_', ' ', $itemName));
+
+        // Défensif : on garantit toujours un retour de type string
+        if (!is_string($result)) {
+            $result = ucfirst(str_replace('_', ' ', $itemName));
+        }
+
+        return $result;
     };
 @endphp
 
@@ -56,7 +64,7 @@
                             $name = $getName($item);
                         @endphp
                         <div class="ec-slot relative flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm transition hover:ring-2 hover:ring-primary-500 hover:border-primary-500 group shrink-0"
-                             title="{{ $name ?? 'Vide' }}">
+                             title="{{ is_string($name) ? $name : 'Vide' }}">
                             @if ($item && isset($item['id']))
                                 @php 
                                     $p = explode(':', $item['id']); 
@@ -74,7 +82,7 @@
                                 @endif
 
                                 <div class="absolute bottom-full mb-1 hidden group-hover:block z-30 whitespace-nowrap bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg pointer-events-none">
-                                    {{ $name }}
+                                    {{ is_string($name) ? $name : '' }}
                                 </div>
                             @endif
                         </div>
