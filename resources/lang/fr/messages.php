@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'navigation_label' => 'Joueurs du jeu',
+    'navigation_label' => 'Joueurs',
 
     'columns' => [
         'avatar' => 'Avatar',
